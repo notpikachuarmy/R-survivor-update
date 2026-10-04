@@ -22,6 +22,10 @@ function updateWeapons(dt) {
   if (player.weapons.panPaloma) {
     updatePanPalomaWeapon(dt);
   }
+
+  if (player.weapons.butterflyStaff) {
+    updateButterflyStaffWeapon(dt);
+  }
 }
 
 function updateChikoritaLeafWeapon(dt) {

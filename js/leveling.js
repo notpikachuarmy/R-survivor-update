@@ -1,8 +1,18 @@
 const levelUpPanel = document.getElementById("levelUpPanel");
 const upgradeOptions = document.getElementById("upgradeOptions");
 
+// Subidas de nivel pendientes. Si subes varios niveles de golpe (por ejemplo al
+// recoger una bolita de XP grande), los paneles se muestran uno detrás de otro
+// en vez de pisarse y hacerte perder mejoras.
+let pendingLevelUps = 0;
+
 function gainXP(amount) {
-  player.xp += Math.ceil(amount * (player.xpMultiplier || 1));
+  const gained = Math.ceil(amount * (player.xpMultiplier || 1));
+  player.xp += gained;
+
+  if (saveData?.stats) {
+    saveData.stats.totalXPCollected = (saveData.stats.totalXPCollected || 0) + gained;
+  }
 
   while (player.xp >= player.xpToNext) {
     player.xp -= player.xpToNext;
@@ -16,7 +26,20 @@ function gainXP(amount) {
   }
 }
 
+function isLevelUpPanelOpen() {
+  return !levelUpPanel.classList.contains("hidden");
+}
+
 function openLevelUpPanel() {
+  if (isLevelUpPanelOpen()) {
+    pendingLevelUps++;
+    return;
+  }
+
+  showLevelUpOptions();
+}
+
+function showLevelUpOptions() {
   gamePaused = true;
   levelUpPanel.classList.remove("hidden");
   upgradeOptions.innerHTML = "";
@@ -47,6 +70,12 @@ function openLevelUpPanel() {
 }
 
 function closeLevelUpPanel() {
+  if (pendingLevelUps > 0) {
+    pendingLevelUps--;
+    showLevelUpOptions();
+    return;
+  }
+
   levelUpPanel.classList.add("hidden");
   gamePaused = false;
 }

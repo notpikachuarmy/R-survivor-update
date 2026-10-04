@@ -113,6 +113,69 @@ const UPGRADE_POOL = [
     }
   },
 
+  // --- Bastón de Mariposamancia ---
+  {
+    id: "butterflyStaff_count",
+    weaponId: "butterflyStaff",
+    itemName: "Bastón de Mariposamancia",
+    name: "Enjambre",
+    description: "+1 mariposa.",
+    canApply: (p, weapon) => weapon.count < 8,
+    apply() { player.weapons.butterflyStaff.count += 1; }
+  },
+  {
+    id: "butterflyStaff_damage",
+    weaponId: "butterflyStaff",
+    itemName: "Bastón de Mariposamancia",
+    name: "Alas afiladas",
+    description: "+2 daño de las mariposas.",
+    apply() { player.weapons.butterflyStaff.damage += 2; }
+  },
+  {
+    id: "butterflyStaff_duration",
+    weaponId: "butterflyStaff",
+    itemName: "Bastón de Mariposamancia",
+    name: "Metamorfosis duradera",
+    description: "Las mariposas duran 1,5 segundos más.",
+    canApply: (p, weapon) => weapon.duration < 15,
+    apply() {
+      player.weapons.butterflyStaff.duration += 1.5;
+      for (const butterfly of butterflies) butterfly.life += 1.5;
+    }
+  },
+  {
+    id: "butterflyStaff_speed",
+    weaponId: "butterflyStaff",
+    itemName: "Bastón de Mariposamancia",
+    name: "Vuelo nervioso",
+    description: "Las mariposas vuelan más rápido y reaparecen antes.",
+    canApply: (p, weapon) => weapon.speed < 520,
+    apply() {
+      const weapon = player.weapons.butterflyStaff;
+      weapon.speed += 45;
+      weapon.respawnCooldown = Math.max(0.6, weapon.respawnCooldown - 0.2);
+    }
+  },
+  {
+    id: "butterflyStaff_chain",
+    weaponId: "butterflyStaff",
+    itemName: "Bastón de Mariposamancia",
+    name: "Polvo eléctrico",
+    description: "Las mariposas se unen con una cadena relámpago que daña a los enemigos que la tocan.",
+    unique: true,
+    canApply: (p, weapon) => weapon.chain !== true && weapon.count >= 2,
+    apply() { player.weapons.butterflyStaff.chain = true; }
+  },
+  {
+    id: "butterflyStaff_chain_damage",
+    weaponId: "butterflyStaff",
+    itemName: "Bastón de Mariposamancia",
+    name: "Alto voltaje",
+    description: "+3 daño de la cadena relámpago.",
+    canApply: (p, weapon) => weapon.chain === true,
+    apply() { player.weapons.butterflyStaff.chainDamage += 3; }
+  },
+
   { id: "panPaloma_damage", weaponId: "panPaloma", itemName: "Pan Paloma", name: "Miga contundente", description: "+5 daño de explosión.", apply() { player.weapons.panPaloma.damage += 5; } },
   { id: "panPaloma_extra", weaponId: "panPaloma", itemName: "Pan Paloma", name: "Bandada de pan", description: "Permite tener un Pan Paloma adicional en el mapa.", apply() { player.weapons.panPaloma.maxActive += 1; } },
   { id: "panPaloma_cooldown", weaponId: "panPaloma", itemName: "Pan Paloma", name: "Horno rápido", description: "Reduce el tiempo entre invocaciones.", apply() { player.weapons.panPaloma.cooldown = Math.max(2.2, player.weapons.panPaloma.cooldown - 0.55); } },

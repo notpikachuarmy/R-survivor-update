@@ -37,6 +37,13 @@ const DEFAULT_SAVE = {
     totalPidoveKills: 0,
     totalChickensSummoned: 0,
     totalEnemiesKilledInRiver: 0,
+    totalEnemiesKilled: 0,
+    totalXPCollected: 0,
+    totalFlabebeKills: 0,
+    totalMagnemiteKills: 0,
+    totalMagnetonKills: 0,
+    totalSandyShocksBossKills: 0,
+    totalSandyShocksKills: 0,
   },
 
   senseis: {
@@ -92,6 +99,14 @@ const DEFAULT_SAVE = {
     laprasFloat: false,
     pidove: false,
     panPaloma: false,
+    butterflyStaff: false,
+    repellent: false,
+    berserkSleeve: false,
+    magnet: false,
+    shellBell: false,
+    magnemite: false,
+    magneton: false,
+    sandyShocks: false,
   }
 };
 
@@ -138,14 +153,61 @@ function mergeSave(defaultData, savedData) {
   return result;
 }
 
-function saveGameData(data) {
+// Guardado con límite de frecuencia: antes se escribía el save completo en
+// localStorage en CADA enemigo derrotado, lo que daba tirones en las hordas.
+// Ahora se escribe como mucho cada 2 segundos (y siempre al cerrar la pestaña).
+const SAVE_MIN_INTERVAL_MS = 2000;
+let lastSaveWrite = 0;
+let pendingSaveData = null;
+let pendingSaveTimeout = null;
+let savingDisabled = false;
+
+function writeSaveNow(data) {
+  if (savingDisabled) return;
   try {
     localStorage.setItem(SAVE_KEY, JSON.stringify(data));
+    lastSaveWrite = Date.now();
   } catch (error) {
     // Navegación privada o almacenamiento lleno: el juego sigue funcionando.
     console.warn("No se pudo guardar la partida:", error);
   }
 }
+
+function flushPendingSave() {
+  if (pendingSaveTimeout) {
+    clearTimeout(pendingSaveTimeout);
+    pendingSaveTimeout = null;
+  }
+  if (pendingSaveData) {
+    const data = pendingSaveData;
+    pendingSaveData = null;
+    writeSaveNow(data);
+  }
+}
+
+// Para el botón de borrar save: evita que un guardado pendiente lo vuelva a escribir.
+function cancelPendingSaves() {
+  if (pendingSaveTimeout) clearTimeout(pendingSaveTimeout);
+  pendingSaveTimeout = null;
+  pendingSaveData = null;
+  savingDisabled = true;
+}
+
+function saveGameData(data) {
+  pendingSaveData = data;
+  const elapsed = Date.now() - lastSaveWrite;
+
+  if (elapsed >= SAVE_MIN_INTERVAL_MS) {
+    flushPendingSave();
+  } else if (!pendingSaveTimeout) {
+    pendingSaveTimeout = setTimeout(flushPendingSave, SAVE_MIN_INTERVAL_MS - elapsed);
+  }
+}
+
+window.addEventListener("beforeunload", flushPendingSave);
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "hidden") flushPendingSave();
+});
 
 function unlockEncyclopedia(category, id) {
   if (!saveData.encyclopedia[category]) return;

@@ -127,6 +127,11 @@ const player = {
   soapActive: false,
   slimeJamActive: false,
   greenPlortActive: false,
+  repellentActive: false,
+  berserkSleeveActive: false,
+  magnetActive: false,
+  shellBellActive: false,
+  shellBellKillCounter: 0,
 
   firePlortActive: false,
   burnChance: 0,
@@ -211,6 +216,7 @@ let spawnTimer = 0;
 let bossSpawnTimer = 25;
 let mimicSpawnTimer = 120;
 let rhyhornSpawnTimer = 300;
+let farEnemyCheckTimer = 1;
 // let shootTimer = 0;
 let hordeTimer = 300;
 let hordeDuration = 0;
@@ -665,6 +671,7 @@ function wireDevInputs(activeTab) {
 
   document.getElementById("devSaveResetButton")?.addEventListener("click", () => {
     if (!confirm("¿Resetear el save entero?")) return;
+    cancelPendingSaves();
     localStorage.removeItem(SAVE_KEY);
     location.reload();
   });
@@ -725,7 +732,14 @@ function setDevStatsToCompletionValues() {
     totalCloudSlimeGiantKills: 100,
     totalCloudSlimeKills: 100,
     totalPidoveKills: 100,
-    totalChickensSummoned: 50
+    totalChickensSummoned: 50,
+    totalEnemiesKilled: 3000,
+    totalXPCollected: 5000,
+    totalFlabebeKills: 100,
+    totalMagnemiteKills: 100,
+    totalMagnetonKills: 0,
+    totalSandyShocksBossKills: 1,
+    totalSandyShocksKills: 0
   };
   for (const [key, value] of Object.entries(values)) {
     saveData.stats[key] = Math.max(Number(saveData.stats[key] || 0), value);
@@ -966,6 +980,11 @@ function resetPlayerForNewRun() {
   player.soapActive = false;
   player.slimeJamActive = false;
   player.greenPlortActive = false;
+  player.repellentActive = false;
+  player.berserkSleeveActive = false;
+  player.magnetActive = false;
+  player.shellBellActive = false;
+  player.shellBellKillCounter = 0;
 
   player.firePlortActive = false;
   player.burnChance = 0;
@@ -1014,6 +1033,10 @@ function resetPlayerForNewRun() {
 
   player.weapons = {};
   panPalomas = [];
+  resetButterflies();
+  resetXpOrbs();
+  resetElectricState();
+  farEnemyCheckTimer = 1;
   applyWeaponDefinition("stone");
 }
 
@@ -1294,7 +1317,11 @@ function renderPauseBuildPanel() {
     [player.soapActive, "Jabón", "soap", [["Efecto", "Puede esquivar daño"]]],
     [player.slimeJamActive, "Mermelada Slime", "slimeJam", [["Contra slimes", "+3 daño"]]],
     [player.greenPlortActive, "Plort Verde", "greenPlort", [["XP slime", "Aumentada"]]],
-    [player.firePlortActive, "Plort de Fuego", "firePlort", [["Quemadura", `${Math.round(player.burnChance * 100)}%`], ["Daño", player.burnDamage], ["Duración", player.burnDuration]]]
+    [player.firePlortActive, "Plort de Fuego", "firePlort", [["Quemadura", `${Math.round(player.burnChance * 100)}%`], ["Daño", player.burnDamage], ["Duración", player.burnDuration]]],
+    [player.repellentActive, "Repelente", "repellent", [["Efecto", "Aparecen menos enemigos"]]],
+    [player.berserkSleeveActive, "Manga de Berserk", "berserkSleeve", [["Daño extra", `+${BALANCE.items.berserkDamageBonus}`]]],
+    [player.magnetActive, "Imán", "magnet", [["Radio de XP", BALANCE.xp.magnetPickupRange]]],
+    [player.shellBellActive, "Cascabel Concha", "shellBell", [["Curación", `${BALANCE.items.shellBellHeal} PS cada ${BALANCE.items.shellBellKillsPerHeal} kills`]]]
   ].filter(item => item[0]);
 
   for (const [, name, id, rows] of runItems) {
@@ -1618,6 +1645,7 @@ const PrisonerDatabase = [
 
 function spawnEnemy(typeId = "slime", biomeId = null) {
   if (!canSpawnEnemy(typeId, biomeId)) return false;
+  if (isEnemyTypeAtLimit(typeId)) return false;
 
   const angle = Math.random() * Math.PI * 2;
   const distanceFromPlayer = 700 + Math.random() * 250;
@@ -1679,6 +1707,7 @@ function spawnRift(riftId) {
     summonTime: data.summonTime,
     summonTimer: data.summonTime,
     summoning: false,
+    tint: data.tint || null,
     sprite: data.sprite()
   });
 
@@ -1712,11 +1741,24 @@ function summonRiftBoss(rift) {
   const angle = Math.random() * Math.PI * 2;
   const spawnDistance = 260;
 
-  spawnEnemyAt(
-    data.bossId,
-    rift.x + Math.cos(angle) * spawnDistance,
-    rift.y + Math.sin(angle) * spawnDistance
-  );
+  // Prueba varias posiciones: antes, si la primera caía sobre una roca, el jefe no aparecía.
+  let spawned = false;
+  for (let i = 0; i < 12 && !spawned; i++) {
+    const tryAngle = angle + i * (Math.PI * 2 / 12);
+    const boss = createEnemy(data.bossId, rift.x + Math.cos(tryAngle) * spawnDistance, rift.y + Math.sin(tryAngle) * spawnDistance);
+    if (boss && !isCollidingWithObstacle(boss)) {
+      enemies.push(boss);
+      unlockEncyclopedia("enemies", boss.id);
+      spawned = true;
+    }
+  }
+  if (!spawned) {
+    const boss = createEnemy(data.bossId, rift.x, rift.y);
+    if (boss) {
+      enemies.push(boss);
+      unlockEncyclopedia("enemies", boss.id);
+    }
+  }
 
   rift.dead = true;
 
@@ -1728,7 +1770,7 @@ function spawnRandomEnemy() {
     ? pickGlobalRareEnemyId(gameTime, saveData)
     : null;
 
-  if (globalRareEnemy) {
+  if (globalRareEnemy && !isEnemyTypeAtLimit(globalRareEnemy)) {
     spawnEnemy(globalRareEnemy);
     return;
   }
@@ -1748,6 +1790,7 @@ function spawnRandomEnemy() {
     const biomeEnemy = pickBiomeEnemyId(x, y, gameTime, saveData) || "slime";
 
     if (!canSpawnEnemy(biomeEnemy, spawnBiome?.id || null)) continue;
+    if (isEnemyTypeAtLimit(biomeEnemy)) continue;
 
     const enemy = createEnemy(biomeEnemy, x, y);
     if (!enemy) continue;
@@ -2141,9 +2184,14 @@ function spawnSlimeCloud(enemy, angleToPlayer) {
     orientation: useVerticalWall ? "vertical" : "horizontal",
     sprite: useVerticalWall ? (Assets.effects.cloudVertical || Assets.effects.cloud) : Assets.effects.cloud
   });
+
+  // Límite de barreras: las más viejas desaparecen primero.
+  trimOldest(slimeClouds, BALANCE.limits.maxSlimeCloudWalls);
 }
 
 function spawnSlimeRainCloud(enemy) {
+  if (slimeRainClouds.length >= BALANCE.limits.maxSlimeRainClouds) return;
+
   const angle = Math.random() * Math.PI * 2;
   const driftSpeed = 28 + Math.random() * 22;
 
@@ -2177,7 +2225,9 @@ function updateSlimeRainClouds(dt) {
     cloud.y += (cloud.vy || 0) * dt;
     cloud.particleTimer -= dt;
 
-    if (cloud.particleTimer <= 0) {
+    // Las gotas ahora son solo visuales (antes cada gota comprobaba colisión con
+    // todos los enemigos, y con varias nubes eso eran decenas de miles de cálculos por frame).
+    if (cloud.particleTimer <= 0 && slimeRainParticles.length < BALANCE.limits.maxSlimeRainParticles) {
       const angle = Math.random() * Math.PI * 2;
       const radius = Math.random() * cloud.radius;
       slimeRainParticles.push({
@@ -2188,21 +2238,23 @@ function updateSlimeRainClouds(dt) {
         lifeTime: 1.05,
         sprite: Assets.effects.slimeRainParticle
       });
-      cloud.particleTimer = 0.055;
+      cloud.particleTimer = 0.1;
+    }
+
+    // El efecto de juego es el mismo: los slimes bajo la lluvia se potencian.
+    const radiusSq = cloud.radius * cloud.radius;
+    for (const enemy of enemies) {
+      if (enemy.dead || !isSlimeEntity(enemy)) continue;
+      const dx = enemy.x - cloud.x;
+      const dy = enemy.y - cloud.y;
+      if (dx * dx + dy * dy < radiusSq) {
+        enemy.slimeRainBoostTimer = Math.max(enemy.slimeRainBoostTimer || 0, 3.0);
+      }
     }
   }
 
   for (const particle of slimeRainParticles) {
     particle.lifeTime -= dt;
-
-    for (const enemy of enemies) {
-      if (enemy.dead || !isSlimeEntity(enemy)) continue;
-      if (distance(enemy, particle) < enemy.collision + (particle.collision || 8)) {
-        enemy.slimeRainBoostTimer = Math.max(enemy.slimeRainBoostTimer || 0, 3.0);
-        particle.lifeTime = Math.min(particle.lifeTime, 0.12);
-        break;
-      }
-    }
   }
 
   slimeRainClouds = slimeRainClouds.filter(cloud => cloud.lifeTime > 0);
@@ -2271,6 +2323,11 @@ function updateEnemies(dt) {
 
     if (enemy.id === "cloudSlime" || enemy.id === "cloudSlimeGiant") {
       updateCloudSlime(enemy, dt, player);
+      continue;
+    }
+
+    if (enemy.electric) {
+      updateElectricEnemy(enemy, dt);
       continue;
     }
     const chickenTarget = getNearestChickenForEnemy(enemy);
@@ -3237,7 +3294,7 @@ function updateBurnOnTarget(target, dt) {
           xpGained = 10;
         }
 
-        gainXP(xpGained);
+        dropEnemyXP(target, xpGained);
 
         onEnemyKilled(target, "burn");
       }
@@ -3320,7 +3377,7 @@ if (player.greenPlortActive && enemy.id === "slime") {
   xpGained = 10;
 }
 
-gainXP(xpGained);
+dropEnemyXP(enemy, xpGained);
 
     onEnemyKilled(enemy, source);
   }
@@ -3344,6 +3401,10 @@ function getPlayerDamageBonus(sourceTags = []) {
 
 function calculatePlayerDamage(amount, sourceTags = [], enemy = null) {
   let finalDamage = amount + (player.baseDamageBonus || 0);
+
+  if (player.berserkSleeveActive) {
+    finalDamage += BALANCE.items.berserkDamageBonus;
+  }
 
   if (
     player.slimeJamActive &&
@@ -3623,6 +3684,51 @@ function updateAlly(enemy, dt) {
 }
 
 function onEnemyKilled(enemy, source = null) {
+  saveData.stats.totalEnemiesKilled = (saveData.stats.totalEnemiesKilled || 0) + 1;
+
+  if (player.shellBellActive) {
+    player.shellBellKillCounter = (player.shellBellKillCounter || 0) + 1;
+    if (player.shellBellKillCounter >= BALANCE.items.shellBellKillsPerHeal) {
+      player.shellBellKillCounter = 0;
+      const before = player.life;
+      player.life = Math.min(player.maxLife, player.life + BALANCE.items.shellBellHeal);
+      saveData.stats.totalHealingReceived += player.life - before;
+    }
+  }
+
+  if (enemy.id === "flabebe") {
+    saveData.stats.totalFlabebeKills = (saveData.stats.totalFlabebeKills || 0) + 1;
+  }
+
+  if (enemy.id === "magnemite") {
+    saveData.stats.totalMagnemiteKills = (saveData.stats.totalMagnemiteKills || 0) + 1;
+  }
+
+  if (enemy.id === "magneton") {
+    saveData.stats.totalMagnetonKills = (saveData.stats.totalMagnetonKills || 0) + 1;
+    if (Math.random() < (enemy.chestChance || 0)) spawnChest(enemy.x, enemy.y);
+  }
+
+  if (enemy.id === "sandyShocksBoss") {
+    saveData.stats.totalSandyShocksBossKills = (saveData.stats.totalSandyShocksBossKills || 0) + 1;
+    completeRift("storm");
+    saveData.unlocks.sandyShocks = true;
+    saveData.unlocks.magnemite = true;
+    unlockEncyclopedia("enemies", "sandyShocks");
+    unlockEncyclopedia("enemies", "magnemite");
+    spawnBlackChest(enemy.x, enemy.y);
+    spawnChest(enemy.x + 50, enemy.y);
+    enemyLightningBolts = [];
+    enemyLightningStrikes = [];
+    if (player.scaryMedkitActive) spawnItemDrop("scaryMedkit", enemy.x - 40, enemy.y);
+  }
+
+  if (enemy.id === "sandyShocks") {
+    saveData.stats.totalSandyShocksKills = (saveData.stats.totalSandyShocksKills || 0) + 1;
+    spawnBlackChest(enemy.x, enemy.y);
+    if (player.scaryMedkitActive && Math.random() < 0.5) spawnItemDrop("scaryMedkit", enemy.x + 35, enemy.y);
+  }
+
   const deathBiome = typeof getBiomeAt === "function" ? getBiomeAt(enemy.x, enemy.y) : null;
   if (deathBiome?.id === "river") {
     saveData.stats.totalEnemiesKilledInRiver = (saveData.stats.totalEnemiesKilledInRiver || 0) + 1;
@@ -4242,6 +4348,89 @@ const BLACK_CHEST_WEAPONS = [
     addRoosterWeapon();
   }
 },
+  {
+  id: "panPaloma",
+  unlockKey: "panPaloma",
+
+  name: "Pan Paloma",
+  description: "Nueva arma: panes paloma voladores que persiguen al enemigo más cercano y explotan.",
+
+  sprite: () => Assets.items.panPaloma,
+
+  apply() {
+    addPanPalomaWeapon();
+  }
+},
+  {
+  id: "butterflyStaff",
+  unlockKey: "butterflyStaff",
+
+  name: "Bastón de Mariposamancia",
+  description: "Nueva arma: invoca mariposas que atacan al enemigo más cercano.",
+
+  sprite: () => Assets.items.butterflyStaff,
+
+  apply() {
+    addButterflyStaffWeapon();
+  }
+},
+  {
+  id: "repellent",
+  unlockKey: "repellent",
+
+  name: "Repelente",
+  description: "Item de run: aparecen menos enemigos.",
+
+  sprite: () => Assets.items.repellent,
+
+  apply() {
+    player.repellentActive = true;
+    unlockEncyclopedia("items", "repellent");
+  }
+},
+  {
+  id: "berserkSleeve",
+  unlockKey: "berserkSleeve",
+
+  name: "Manga de Berserk",
+  description: "Item de run: +2 de daño a todos tus ataques.",
+
+  sprite: () => Assets.items.berserkSleeve,
+
+  apply() {
+    player.berserkSleeveActive = true;
+    unlockEncyclopedia("items", "berserkSleeve");
+  }
+},
+  {
+  id: "magnet",
+  unlockKey: "magnet",
+
+  name: "Imán",
+  description: "Item de run: atraes la experiencia desde mucho más lejos.",
+
+  sprite: () => Assets.items.magnet,
+
+  apply() {
+    player.magnetActive = true;
+    unlockEncyclopedia("items", "magnet");
+  }
+},
+  {
+  id: "shellBell",
+  unlockKey: "shellBell",
+
+  name: "Cascabel Concha",
+  description: "Item de run: cada 15 enemigos derrotados recuperas 4 PS.",
+
+  sprite: () => Assets.items.shellBell,
+
+  apply() {
+    player.shellBellActive = true;
+    player.shellBellKillCounter = 0;
+    unlockEncyclopedia("items", "shellBell");
+  }
+},
 ];
 
 
@@ -4257,7 +4446,11 @@ const RUN_ITEM_IDS = new Set([
   "slimeJam",
   "greenPlort",
   "firePlort",
-  "chicken"
+  "chicken",
+  "repellent",
+  "berserkSleeve",
+  "magnet",
+  "shellBell"
 ]);
 
 function isBlackChestRewardUnlocked(reward) {
@@ -4277,7 +4470,11 @@ function isBlackChestRewardOwned(reward) {
     slimeJam: "slimeJamActive",
     greenPlort: "greenPlortActive",
     firePlort: "firePlortActive",
-    chicken: "chickenActive"
+    chicken: "chickenActive",
+    repellent: "repellentActive",
+    berserkSleeve: "berserkSleeveActive",
+    magnet: "magnetActive",
+    shellBell: "shellBellActive"
   };
 
   const flag = runItemFlags[reward.id];
@@ -4344,6 +4541,14 @@ function getBlackChestRewards(amount = 3) {
 
   if (upgrade.weaponId === "rooster") {
     return Assets.items.rooster;
+  }
+
+  if (upgrade.weaponId === "butterflyStaff") {
+    return Assets.items.butterflyStaff;
+  }
+
+  if (upgrade.weaponId === "panPaloma") {
+    return Assets.items.panPaloma;
   }
 
   return Assets.projectiles.stone;
@@ -5483,7 +5688,7 @@ function killVisibleEnemies() {
       enemy.dead = true;
       kills++;
       score += enemy.scoreValue;
-      gainXP(enemy.xpValue);
+      dropEnemyXP(enemy, enemy.xpValue);
       onEnemyKilled(enemy);
     }
   }
@@ -5821,6 +6026,7 @@ if (
 
 function drawRifts() {
   for (const rift of activeRifts) {
+    if (rift.tint) drawStormRiftGlow(rift);
     drawWorldObject(rift);
 
     if (rift.summoning) {
@@ -5991,6 +6197,8 @@ for (const zone of senseiDebuffZones) {
     drawWorldObject(drop);
   }
 
+  drawXpOrbs();
+
   for (const chest of chests) {
     drawWorldObject(chest);
   }
@@ -6124,6 +6332,9 @@ drawRockSpikes();
   }
 
   for (const enemy of enemies) {
+  // No se dibujan enemigos fuera de pantalla.
+  if (!isVisibleOnScreen(enemy, (enemy.size || 64) + 40)) continue;
+
   let alpha = 1;
 
   if (enemy.state === "charge") {
@@ -6141,6 +6352,9 @@ drawRockSpikes();
       drawAllyHearts(enemy);
     }
 }
+
+  drawButterflies();
+  drawEnemyLightning();
 
   // El cursor se dibuja encima de los enemigos y siempre con la misma orientación.
   for (const cursor of mouseCursors) {
@@ -6327,7 +6541,7 @@ function exportDeathSummaryImage() {
   ex.font = "22px sans-serif";
   const itemIds = new Set();
   for (const [id] of Object.entries(player.weapons || {})) if (getPauseGroupForId(id) === "items") itemIds.add(id);
-  for (const id of ["scaryMedkit","eviolite","runningShoes","drill","leaderBadge","soap","slimeJam","greenPlort","firePlort","pokeball","chicken"]) {
+  for (const id of ["scaryMedkit","eviolite","runningShoes","drill","leaderBadge","soap","slimeJam","greenPlort","firePlort","pokeball","chicken","repellent","berserkSleeve","magnet","shellBell"]) {
     if (player[`${id}Active`] || player.weapons?.[id]) itemIds.add(id);
   }
   for (const id of itemIds) {
@@ -6354,6 +6568,7 @@ function endGame() {
   }
 
   saveGameData(saveData);
+  flushPendingSave();
 
   finalTime.textContent = formatTime(gameTime);
   finalKills.textContent = kills;
@@ -6394,13 +6609,13 @@ function update(dt) {
   rhyhornSpawnTimer -= dt;
 
   if (spawnTimer <= 0) {
-    spawnRandomEnemy();
+    // Con el límite de enemigos alcanzado no aparece nadie nuevo hasta que mueran algunos.
+    if (hasRoomForRegularEnemy()) {
+      spawnRandomEnemy();
+    }
 
-    const spawnSpeed = Math.max(0.22, 1.2 - gameTime * 0.01);
-
-    spawnTimer = hordeActive
-      ? spawnSpeed * 0.45
-      : spawnSpeed;
+    // Ritmo de aparición configurable en js/balance.js.
+    spawnTimer = getSpawnInterval();
   }
 
   if (
@@ -6429,9 +6644,19 @@ function update(dt) {
   rhyhornSpawnTimer = 300;
 }
 
+  updateStormEvents(dt);
+
+  farEnemyCheckTimer -= dt;
+  if (farEnemyCheckTimer <= 0) {
+    farEnemyCheckTimer = 1;
+    despawnFarEnemies();
+  }
+
   updatePlayer(dt);
   updateWeapons(dt);
   updateEnemies(dt);
+  updateEnemyLightning(dt);
+  updateXpOrbs(dt);
   updateBurns(dt);
   updateSlimeRainBoosts(dt);
   updateSlimeClouds(dt);

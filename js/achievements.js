@@ -486,6 +486,96 @@ kill500Slimes: {
   }
 },
 
+  kill100Flabebe: {
+    id: "kill100Flabebe",
+    name: "Efecto mariposa",
+    description: "Derrota a 100 Flabébé.",
+    reward: "Desbloquea el Bastón de Mariposamancia.",
+    check() { return (saveData.stats.totalFlabebeKills || 0) >= 100; },
+    unlock() {
+      saveData.unlocks.butterflyStaff = true;
+      unlockEncyclopedia("weapons", "butterflyStaff");
+    }
+  },
+
+  survive15Minutes: {
+    id: "survive15Minutes",
+    name: "Olor a superviviente",
+    description: "Sobrevive 15 minutos en una partida.",
+    reward: "Desbloquea el Repelente en los cofres negros.",
+    check() {
+      return (saveData.bestTime || 0) >= 900 ||
+        (typeof gameTime === "number" && gameTime >= 900);
+    },
+    unlock() {
+      saveData.unlocks.repellent = true;
+      unlockEncyclopedia("items", "repellent");
+    }
+  },
+
+  kill3000Enemies: {
+    id: "kill3000Enemies",
+    name: "Modo berserk",
+    description: "Derrota a 3000 enemigos en total.",
+    reward: "Desbloquea la Manga de Berserk en los cofres negros.",
+    check() { return (saveData.stats.totalEnemiesKilled || 0) >= 3000; },
+    unlock() {
+      saveData.unlocks.berserkSleeve = true;
+      unlockEncyclopedia("items", "berserkSleeve");
+    }
+  },
+
+  collect5000XP: {
+    id: "collect5000XP",
+    name: "Atracción irresistible",
+    description: "Recoge 5000 de experiencia en total.",
+    reward: "Desbloquea el Imán en los cofres negros.",
+    check() { return (saveData.stats.totalXPCollected || 0) >= 5000; },
+    unlock() {
+      saveData.unlocks.magnet = true;
+      unlockEncyclopedia("items", "magnet");
+    }
+  },
+
+  defeatSandyShocksBoss: {
+    id: "defeatSandyShocksBoss",
+    name: "Ojo de la tormenta",
+    description: "Derrota a Sandy Shocks en la Grieta de tormenta.",
+    reward: "Desbloquea Magnemite y que Sandy Shocks aparezca cada 5 minutos.",
+    check() { return (saveData.stats.totalSandyShocksBossKills || 0) >= 1; },
+    unlock() {
+      saveData.unlocks.sandyShocks = true;
+      saveData.unlocks.magnemite = true;
+      unlockEncyclopedia("enemies", "sandyShocksBoss");
+      unlockEncyclopedia("enemies", "sandyShocks");
+      unlockEncyclopedia("enemies", "magnemite");
+    }
+  },
+
+  kill100Magnemite: {
+    id: "kill100Magnemite",
+    name: "Campo magnético",
+    description: "Derrota a 100 Magnemite.",
+    reward: "Desbloquea a Magneton.",
+    check() { return (saveData.stats.totalMagnemiteKills || 0) >= 100; },
+    unlock() {
+      saveData.unlocks.magneton = true;
+      unlockEncyclopedia("enemies", "magneton");
+    }
+  },
+
+  heal1000Life: {
+    id: "heal1000Life",
+    name: "Suena a salud",
+    description: "Recupera 1000 PS en total.",
+    reward: "Desbloquea el Cascabel Concha en los cofres negros.",
+    check() { return (saveData.stats.totalHealingReceived || 0) >= 1000; },
+    unlock() {
+      saveData.unlocks.shellBell = true;
+      unlockEncyclopedia("items", "shellBell");
+    }
+  },
+
 };
 
 function checkAchievements() {

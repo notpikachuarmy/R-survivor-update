@@ -162,6 +162,30 @@ const WeaponRegistry = {
     }
   },
 
+  butterflyStaff: {
+    id: "butterflyStaff",
+    name: "Bastón de Mariposamancia",
+    description: "Invoca mariposas que vuelan hacia el enemigo más cercano.",
+    category: "Arma",
+    sprite: () => Assets.items.butterflyStaff,
+    unlockKey: "butterflyStaff",
+    canStart: true,
+    encyclopedia: true,
+    initialStats: {
+      tags: ["summon", "flying", "butterfly", "magic"],
+      damage: 4,
+      count: 2,
+      duration: 6,
+      respawnCooldown: 1.6,
+      speed: 300,
+      hitCooldown: 0.45,
+      range: 480,
+      chain: false,
+      chainDamage: 3,
+      chainTick: 0.4
+    }
+  },
+
   rooster: {
     id: "rooster",
     name: "Gallo de Pelea",
@@ -255,7 +279,9 @@ const BiomeRegistry = {
       { id: "watermelonVoltorb", weight: 7, minTime: 60, unlockKey: "watermelonVoltorb" },
       { id: "watermelonElectrode", weight: 3, minTime: 90, unlockKey: "watermelonElectrode" },
       { id: "flabebe", weight: 5, minTime: 180, unlockKey: "flabebe" },
-      { id: "delibird", weight: 2, minTime: 180, unlockKey: "delibird" }
+      { id: "delibird", weight: 2, minTime: 180, unlockKey: "delibird" },
+      { id: "magnemite", weight: 5, minTime: 150, unlockKey: "magnemite" },
+      { id: "magneton", weight: 2, minTime: 330, unlockKey: "magneton" }
     ],
     decorations: ["grass1", "grass2", "flower1"],
     obstacles: ["rock", "bush", "tree"],
@@ -278,7 +304,9 @@ const BiomeRegistry = {
       { id: "slimeGiant", weight: 8, minTime: 45, unlockKey: "slimeGiant" },
       { id: "watermelonVoltorb", weight: 9, minTime: 60, unlockKey: "watermelonVoltorb" },
       { id: "watermelonElectrode", weight: 4, minTime: 90, unlockKey: "watermelonElectrode" },
-      { id: "pidove", weight: 7, minTime: 180, unlockKey: "pidove" }
+      { id: "pidove", weight: 7, minTime: 180, unlockKey: "pidove" },
+      { id: "magnemite", weight: 4, minTime: 150, unlockKey: "magnemite" },
+      { id: "magneton", weight: 2, minTime: 330, unlockKey: "magneton" }
     ],
     decorations: ["grass1", "grass2", "flower1", "flowerBlue", "flowerRed", "flowerYellow", "bushSmall"],
     obstacles: ["treeForest1", "treeForest2", "treeForest3", "bush", "rock"],

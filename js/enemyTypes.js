@@ -743,6 +743,137 @@ senseiTalent: {
   cannotCapture: true,
 },
 
+  // ---------------------------------------------------------------------------
+  // Enemigos eléctricos (lógica en js/electric.js).
+  // Todo lo de "electric" se copia tal cual al enemigo al crearlo.
+  // ---------------------------------------------------------------------------
+  magnemite: {
+    id: "magnemite",
+    name: "Magnemite",
+    type: "ranged",
+    tags: ["electric", "steel", "flying"],
+    sprite: () => Assets.enemies.magnemite,
+    size: 104,
+    collision: 17,
+    life: 22,
+    speed: 88,
+    xpValue: 4,
+    scoreValue: 60,
+    attacks: [],
+    electric: {
+      preferredDistance: 300,
+      boltRange: 520,
+      boltCooldown: 3.4,
+      boltDamage: 8,
+      boltCount: 1,
+      boltSpread: 0,
+      boltWarn: 0.75,
+      boltLength: 560
+    },
+    isBoss: false,
+    chestChance: 0
+  },
+
+  magneton: {
+    id: "magneton",
+    name: "Magneton",
+    type: "ranged",
+    tags: ["electric", "steel", "flying"],
+    sprite: () => Assets.enemies.magneton,
+    size: 104,
+    collision: 30,
+    life: 75,
+    speed: 72,
+    xpValue: 14,
+    scoreValue: 180,
+    attacks: [],
+    electric: {
+      preferredDistance: 330,
+      boltRange: 560,
+      boltCooldown: 3.9,
+      boltDamage: 9,
+      boltCount: 3,
+      boltSpread: 0.32,
+      boltWarn: 0.8,
+      boltLength: 600
+    },
+    isBoss: false,
+    chestChance: 0.05
+  },
+
+  sandyShocksBoss: {
+    id: "sandyShocksBoss",
+    name: "Sandy Shocks",
+    type: "boss",
+    tags: ["boss", "electric", "magnet"],
+    sprite: () => Assets.enemies.sandyShocksBoss,
+    size: 150,
+    collision: 48,
+    life: 420,
+    speed: 55,
+    xpValue: 150,
+    scoreValue: 1200,
+    attacks: [],
+    electric: {
+      preferredDistance: 0,
+      boltRange: 700,
+      boltCooldown: 3.2,
+      boltDamage: 12,
+      boltCount: 5,
+      boltSpread: 0.55,
+      boltWarn: 0.85,
+      boltLength: 760,
+      strikeCooldown: 6,
+      strikeCount: 5,
+      strikeRadius: 70,
+      strikeDamage: 16,
+      strikeWarn: 1.0,
+      pullCooldown: 9,
+      pullDuration: 2.6,
+      pullStrength: 170,
+      pullRange: 900,
+      shockRadius: 125,
+      shockDamage: 5
+    },
+    isBoss: true,
+    chestChance: 1,
+    cannotCapture: true
+  },
+
+  sandyShocks: {
+    id: "sandyShocks",
+    name: "Sandy Shocks",
+    type: "special",
+    tags: ["boss", "electric", "magnet"],
+    sprite: () => Assets.enemies.sandyShocks,
+    size: 112,
+    collision: 36,
+    life: 220,
+    speed: 60,
+    xpValue: 60,
+    scoreValue: 500,
+    attacks: [],
+    electric: {
+      preferredDistance: 0,
+      boltRange: 620,
+      boltCooldown: 3.8,
+      boltDamage: 10,
+      boltCount: 3,
+      boltSpread: 0.4,
+      boltWarn: 0.85,
+      boltLength: 660,
+      pullCooldown: 11,
+      pullDuration: 2,
+      pullStrength: 130,
+      pullRange: 750,
+      shockRadius: 105,
+      shockDamage: 4
+    },
+    isBoss: true,
+    chestChance: 1,
+    cannotCapture: true
+  },
+
 };
 
 function createEnemy(typeId, x, y) {
@@ -863,7 +994,10 @@ function createEnemy(typeId, x, y) {
     jumpTimer: 0,
     jumpVx: 0,
     jumpVy: 0,
-    attackCooldown: 1 + Math.random()
+    attackCooldown: 1 + Math.random(),
+
+    // Configuración de enemigos eléctricos (Magnemite, Magneton, Sandy Shocks).
+    electric: data.electric ? structuredClone(data.electric) : null
   };
 }
 
@@ -918,6 +1052,11 @@ if (typeId === "cloudSlimeGiant") {
 if (typeId === "cloudSlime") {
   return saveData.unlocks.cloudSlime === true;
 }
+
+  if (typeId === "magnemite") return saveData.unlocks.magnemite === true;
+  if (typeId === "magneton") return saveData.unlocks.magneton === true;
+  if (typeId === "sandyShocks") return saveData.unlocks.sandyShocks === true;
+
 
   if (typeId === "rhyhorn") {
   return saveData.unlocks.rhyhorn === true;

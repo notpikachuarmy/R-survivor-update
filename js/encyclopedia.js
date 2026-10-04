@@ -740,6 +740,132 @@ senseiTalent: {
   }
 };
 
+// --- Contenido de la tormenta, mariposas e items pasivos nuevos ---
+Object.assign(EncyclopediaDatabase.weapons, {
+  butterflyStaff: {
+    id: "butterflyStaff",
+    name: "Bastón de Mariposamancia",
+    category: "Arma",
+    sprite: () => Assets.items.butterflyStaff,
+    description: "Invoca mariposas que vuelan hacia el enemigo más cercano y le hacen daño al tocarlo.",
+    details: [
+      "Tipo: Invocación",
+      "Cada mariposa dura unos segundos y reaparece tras un pequeño cooldown.",
+      "Polvo eléctrico: las mariposas se unen con una cadena relámpago que daña a quien la toque.",
+      "Puedes mejorar la cantidad de mariposas, su daño, duración, velocidad y el daño de la cadena.",
+      "Se desbloquea derrotando a 100 Flabébé."
+    ]
+  }
+});
+
+Object.assign(EncyclopediaDatabase.items, {
+  repellent: {
+    id: "repellent",
+    name: "Repelente",
+    category: "Item de run",
+    sprite: () => Assets.items.repellent,
+    description: "Hace que aparezcan menos enemigos durante la run.",
+    details: [
+      "Los enemigos tardan un 30% más en aparecer.",
+      "El máximo de enemigos a la vez baja un 20%.",
+      "Se desbloquea sobreviviendo 15 minutos en una partida."
+    ]
+  },
+  berserkSleeve: {
+    id: "berserkSleeve",
+    name: "Manga de Berserk",
+    category: "Item de run",
+    sprite: () => Assets.items.berserkSleeve,
+    description: "+2 de daño a todos tus ataques durante la run.",
+    details: [
+      "Afecta a armas, invocaciones, torretas y aliados.",
+      "Se desbloquea derrotando a 3000 enemigos en total."
+    ]
+  },
+  magnet: {
+    id: "magnet",
+    name: "Imán",
+    category: "Item de run",
+    sprite: () => Assets.items.magnet,
+    description: "Atraes las bolitas de experiencia desde mucho más lejos.",
+    details: [
+      "Se desbloquea recogiendo 5000 de experiencia en total."
+    ]
+  },
+  shellBell: {
+    id: "shellBell",
+    name: "Cascabel Concha",
+    category: "Item de run",
+    sprite: () => Assets.items.shellBell,
+    description: "Cada 15 enemigos derrotados recuperas 4 PS.",
+    details: [
+      "Se desbloquea recuperando 1000 PS en total."
+    ]
+  }
+});
+
+Object.assign(EncyclopediaDatabase.enemies, {
+  magnemite: {
+    id: "magnemite",
+    name: "Magnemite",
+    category: "Enemigo",
+    sprite: () => Assets.enemies.magnemite,
+    description: "Mantiene las distancias y dispara rayos. Una línea amarilla avisa antes de cada rayo.",
+    details: [
+      "22 PS",
+      "4 XP",
+      "Velocidad: 88",
+      "Ataque: Rayo",
+      "Se desbloquea derrotando a Sandy Shocks en la Grieta de tormenta."
+    ]
+  },
+  magneton: {
+    id: "magneton",
+    name: "Magneton",
+    category: "Enemigo",
+    sprite: () => Assets.enemies.magneton,
+    description: "Evolución de Magnemite. Dispara tres rayos en abanico.",
+    details: [
+      "75 PS",
+      "14 XP",
+      "Velocidad: 72",
+      "Ataque: Triple rayo",
+      "Puede soltar un cofre.",
+      "Se desbloquea derrotando a 100 Magnemite."
+    ]
+  },
+  sandyShocksBoss: {
+    id: "sandyShocksBoss",
+    name: "Sandy Shocks",
+    category: "Jefe",
+    sprite: () => Assets.enemies.sandyShocksBoss,
+    description: "El guardián de la Grieta de tormenta. Lanza rayos, hace caer relámpagos del cielo y te atrae con su magnetismo.",
+    details: [
+      "420 PS",
+      "150 XP",
+      "Velocidad: 55",
+      "Ataque: Abanico de rayos",
+      "Ataque: Relámpagos del cielo",
+      "Ataque: Atracción magnética con aura eléctrica",
+      "La grieta aparece a los 4 minutos tras completar la de Rhyhorn."
+    ]
+  },
+  sandyShocks: {
+    id: "sandyShocks",
+    name: "Sandy Shocks",
+    category: "Jefe",
+    sprite: () => Assets.enemies.sandyShocks,
+    description: "Versión debilitada del guardián de la tormenta. Aparece periódicamente una vez derrotado el jefe.",
+    details: [
+      "220 PS",
+      "Velocidad: 60",
+      "Ataque: Rayos",
+      "Ataque: Atracción magnética",
+      "Siempre deja un Cofre Negro."
+    ]
+  }
+});
+
 function renderEncyclopedia() {
   const container = document.getElementById("encyclopediaContent");
   container.innerHTML = "";

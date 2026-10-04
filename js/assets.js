@@ -28,6 +28,10 @@ const Assets = {
     cloudSlime: new Image(),
     cloudSlimeGiant: new Image(),
     pidove: new Image(),
+    magnemite: new Image(),
+    magneton: new Image(),
+    sandyShocks: new Image(),
+    sandyShocksBoss: new Image(),
   },
 
   projectiles: {
@@ -42,6 +46,7 @@ const Assets = {
     shuriken: new Image(),
     sockSwing: new Image(),
     tornado: new Image(),
+    butterfly: new Image(),
     // Cursor no usa sprite de proyectil: se dibuja siempre con Assets.items.cursor.
   },
 
@@ -82,6 +87,11 @@ const Assets = {
     rooster: new Image(),
     laprasFloat: new Image(),
     panPaloma: new Image(),
+    butterflyStaff: new Image(),
+    magnet: new Image(),
+    berserkSleeve: new Image(),
+    repellent: new Image(),
+    shellBell: new Image(),
   },
 
   obstacles: {
@@ -305,6 +315,18 @@ Assets.npc.prisoner3.src = "assets/npc/prisoner3.png";
 Assets.allies.chicken.src = "assets/allies/chicken.png";
 Assets.allies.rooster.src = "assets/allies/rooster.png";
 Assets.allies.roosterSlime.src = "assets/allies/roosterSlime.png";
+
+// --- Contenido nuevo (tormenta, mariposas, items pasivos) ---
+Assets.enemies.magnemite.src = "assets/enemies/magnemite.png";
+Assets.enemies.magneton.src = "assets/enemies/magneton.png";
+Assets.enemies.sandyShocks.src = "assets/enemies/sandyshocks.png";
+Assets.enemies.sandyShocksBoss.src = "assets/enemies/sandyshocksBoss.png";
+Assets.projectiles.butterfly.src = "assets/projectiles/butterfly.png";
+Assets.items.butterflyStaff.src = "assets/items/Bastonmariposamancia.png";
+Assets.items.magnet.src = "assets/items/iman.png";
+Assets.items.berserkSleeve.src = "assets/items/mangaberserk.png";
+Assets.items.repellent.src = "assets/items/repelente.png";
+Assets.items.shellBell.src = "assets/items/cascabelConcha.png";
 
 function loadAssets(callback) {
   const images = [];
