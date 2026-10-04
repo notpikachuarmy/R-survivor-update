@@ -651,7 +651,73 @@ const UPGRADE_POOL = [
 },
 ];
 
+
+// ---------------------------------------------------------------------------
+// Máximo de veces que se puede elegir cada mejora en una partida.
+// Antes la mayoría no tenían límite y el arma inicial se podía subir sin fin.
+// Cuando una mejora llega a su máximo deja de salir; si no queda ninguna,
+// sale la opción de curarse con Patatas con alioli.
+// ---------------------------------------------------------------------------
+const UPGRADE_MAX_STACKS = {
+  // Piedra
+  stone_damage: 8, stone_extra_projectile: 4, stone_fire_rate: 5,
+  stone_bounce: 3, ruby_stone: 4, stone_size: 4,
+  // PatataBoom
+  patataBoom_damage: 8, patataBoom_radius: 4, patataBoom_extra_mine: 4,
+  patataBoom_fire_rate: 6, patataBoom_chain: 1,
+  // Bastón de Mariposamancia
+  butterflyStaff_count: 6, butterflyStaff_damage: 8, butterflyStaff_duration: 6,
+  butterflyStaff_speed: 5, butterflyStaff_chain: 1, butterflyStaff_chain_damage: 5,
+  // Pan Paloma
+  panPaloma_damage: 8, panPaloma_extra: 3, panPaloma_cooldown: 6,
+  panPaloma_speed: 4, panPaloma_distance: 4, panPaloma_double_explosion: 1,
+  // Poké Ball
+  pokeball_more_allies: 4, pokeball_damage: 5, pokeball_life: 4, pokeball_speed: 3,
+  // Torreta
+  watermelonSeedTurret_damage: 8, watermelonSeedTurret_extra: 3, watermelonSeedTurret_fire_rate: 5,
+  watermelonSeedTurret_duration: 4, watermelonSeedTurret_range: 4, watermelonSeedTurret_cooldown: 6,
+  // Hoja de Chikorita
+  chikoritaLeaf_damage: 8, chikoritaLeaf_extra_leaf: 5, chikoritaLeaf_speed: 4,
+  chikoritaLeaf_pierce: 4, chikoritaLeaf_size: 4, chikoritaLeaf_fire_rate: 6,
+  // Calcetín con Piedra
+  sockRock_damage: 8, sockRock_range: 5, sockRock_fire_rate: 6, sockRock_size: 4,
+  // Plort de Fuego
+  firePlort_duration: 5, firePlort_damage: 5, firePlort_tick_rate: 6, firePlort_chance: 10,
+  // Gallina
+  chicken_life: 5, chicken_attract_range: 4, chicken_max: 4, chicken_spawn_area: 3, chicken_giant: 1,
+  // Cursor
+  cursor_damage: 8, cursor_click_speed: 3, cursor_count: 4, cursor_range: 4,
+  // Gallo de Pelea
+  rooster_damage: 8, rooster_speed: 4, rooster_life: 5, rooster_count: 4,
+  rooster_giant: 1, rooster_slime: 1
+};
+
+// Para mejoras nuevas que se olviden de añadir arriba.
+const DEFAULT_UPGRADE_MAX_STACKS = 5;
+
+function getUpgradeMaxStacks(upgrade) {
+  if (!upgrade) return DEFAULT_UPGRADE_MAX_STACKS;
+  if (upgrade.unique) return 1;
+  return UPGRADE_MAX_STACKS[upgrade.id] ?? upgrade.maxStacks ?? DEFAULT_UPGRADE_MAX_STACKS;
+}
+
+function getUpgradeStacks(upgradeId) {
+  return player.upgradeStacks?.[upgradeId] || 0;
+}
+
+// Texto "Nv. 2/8" para las tarjetas de mejora.
+function getUpgradeLevelLabel(upgrade) {
+  if (!upgrade || upgrade.isFallbackHeal) return "";
+  const max = getUpgradeMaxStacks(upgrade);
+  return `Nv. ${getUpgradeStacks(upgrade.id) + 1}/${max}`;
+}
+
 function registerWeaponUpgrade(weaponId, upgradeId = null, unique = false) {
+  if (upgradeId) {
+    if (!player.upgradeStacks) player.upgradeStacks = {};
+    player.upgradeStacks[upgradeId] = (player.upgradeStacks[upgradeId] || 0) + 1;
+  }
+
   if (!player.weaponUpgradeCounts) {
     player.weaponUpgradeCounts = {};
   }
@@ -708,6 +774,10 @@ function isUpgradeStillUseful(upgrade) {
     player.uniqueUpgrades &&
     player.uniqueUpgrades[upgrade.id]
   ) {
+    return false;
+  }
+
+  if (getUpgradeStacks(upgrade.id) >= getUpgradeMaxStacks(upgrade)) {
     return false;
   }
 

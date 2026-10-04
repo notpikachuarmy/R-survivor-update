@@ -859,3 +859,11 @@ body {
   font-size: 13px;
   color: #c7a7ff;
 }
+
+/* Arma y nivel de la mejora en las tarjetas de subida de nivel */
+.upgrade-card-weapon {
+  display: block;
+  margin: -4px 0 6px;
+  font-size: 0.8em;
+  opacity: 0.75;
+}

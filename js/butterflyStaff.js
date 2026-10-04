@@ -59,9 +59,21 @@ function spawnButterfly(slot) {
   });
 }
 
+// Elige objetivo repartiendo: primero enemigos que ninguna otra mariposa persigue.
+// Solo si hay menos enemigos que mariposas, varias comparten objetivo
+// (y aun así se reparten entre los menos perseguidos).
 function findButterflyTarget(butterfly, weapon) {
+  const rangeSq = weapon.range * weapon.range;
+  const claims = new Map();
+
+  for (const other of butterflies) {
+    if (other === butterfly || other.dead || !other.target || other.target.dead) continue;
+    claims.set(other.target, (claims.get(other.target) || 0) + 1);
+  }
+
   let best = null;
-  let bestDistSq = weapon.range * weapon.range;
+  let bestClaims = Infinity;
+  let bestDistSq = Infinity;
 
   for (const enemy of enemies) {
     if (!isEnemyFaction(enemy)) continue;
@@ -69,25 +81,21 @@ function findButterflyTarget(butterfly, weapon) {
     // Solo enemigos dentro del alcance del jugador, para que no se vayan lejísimos.
     const pdx = enemy.x - player.x;
     const pdy = enemy.y - player.y;
-    if (pdx * pdx + pdy * pdy > bestDistSq) continue;
+    if (pdx * pdx + pdy * pdy > rangeSq) continue;
 
+    const enemyClaims = claims.get(enemy) || 0;
     const dx = enemy.x - butterfly.x;
     const dy = enemy.y - butterfly.y;
+    const distSq = dx * dx + dy * dy;
 
-    // Penaliza enemigos que ya persiguen otras mariposas: así se reparten
-    // y la cadena relámpago cubre más zona.
-    let alreadyTargeted = 0;
-    for (const other of butterflies) {
-      if (other !== butterfly && !other.dead && other.target === enemy) alreadyTargeted++;
-    }
-    const distSq = (dx * dx + dy * dy) * (1 + alreadyTargeted * 4);
-
-    if (!best || distSq < best.distSq) {
-      best = { enemy, distSq };
+    if (enemyClaims < bestClaims || (enemyClaims === bestClaims && distSq < bestDistSq)) {
+      best = enemy;
+      bestClaims = enemyClaims;
+      bestDistSq = distSq;
     }
   }
 
-  return best ? best.enemy : null;
+  return best;
 }
 
 function updateButterflies(dt, weapon) {
@@ -105,8 +113,12 @@ function updateButterflies(dt, weapon) {
       continue;
     }
 
-    if (!butterfly.target || butterfly.target.dead || !isEnemyFaction(butterfly.target)) {
+    // Revisa su objetivo cada poco: si comparte enemigo con otra mariposa y
+    // aparece uno libre, cambia para repartirse.
+    butterfly.retargetTimer = (butterfly.retargetTimer ?? 0) - dt;
+    if (!butterfly.target || butterfly.target.dead || !isEnemyFaction(butterfly.target) || butterfly.retargetTimer <= 0) {
       butterfly.target = findButterflyTarget(butterfly, weapon);
+      butterfly.retargetTimer = 0.6 + Math.random() * 0.3;
     }
 
     // Si el objetivo se ha alejado demasiado del jugador, se busca otro.

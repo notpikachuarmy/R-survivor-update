@@ -50,6 +50,21 @@ const BALANCE = {
     attractSpeed: 520
   },
 
+  // Dificultad creciente: cada "fase" (5 minutos) la partida se endurece.
+  scaling: {
+    stageSeconds: 300,
+    // +35 al máximo de enemigos por fase (170 → 205 → 240 → 275...).
+    maxEnemiesPerStage: 35,
+    maxEnemiesCap: 400,
+    // El intervalo entre apariciones se multiplica por esto en cada fase (0.8 = 25% más enemigos).
+    spawnIntervalPerStage: 0.8,
+    // Nunca bajará de aquí (≈ 8 enemigos por segundo, sin contar hordas).
+    spawnIntervalFloor: 0.12,
+    // +10% de vida y +5% de daño de los enemigos por fase.
+    enemyLifePerStage: 0.10,
+    enemyDamagePerStage: 0.05
+  },
+
   items: {
     // Repelente: multiplica el tiempo entre apariciones y reduce el límite de enemigos.
     repellentIntervalMultiplier: 1.3,
@@ -81,9 +96,49 @@ function isSpecialEnemy(enemy) {
   );
 }
 
+let currentDifficultyStage = 0;
+
+// Fase de dificultad actual: 0 los primeros 5 minutos, 1 de 5 a 10, etc.
+function getDifficultyStage() {
+  return Math.floor((gameTime || 0) / BALANCE.scaling.stageSeconds);
+}
+
+function updateDifficultyStage() {
+  const stage = getDifficultyStage();
+  if (stage > currentDifficultyStage) {
+    currentDifficultyStage = stage;
+    showEventMessage(`¡Los enemigos se vuelven más fuertes y numerosos! (Fase ${stage + 1})`);
+  }
+}
+
+// Vida extra de los enemigos según la fase (se aplica al aparecer).
+function applyDifficultyScalingToEnemy(enemy) {
+  if (!enemy || enemy.isAlly || enemy.difficultyScaled) return enemy;
+  const stage = getDifficultyStage();
+  if (stage > 0) {
+    const multiplier = 1 + stage * BALANCE.scaling.enemyLifePerStage;
+    enemy.life = Math.ceil(enemy.life * multiplier);
+    enemy.maxLife = Math.ceil(enemy.maxLife * multiplier);
+  }
+  enemy.difficultyScaled = true;
+  return enemy;
+}
+
+function getDifficultyDamageMultiplier() {
+  return 1 + getDifficultyStage() * BALANCE.scaling.enemyDamagePerStage;
+}
+
 function getSpawnInterval() {
   const cfg = BALANCE.spawn;
   let interval = Math.max(cfg.minInterval, cfg.startInterval - gameTime * cfg.rampPerSecond);
+
+  const stage = getDifficultyStage();
+  if (stage > 0) {
+    interval = Math.max(
+      BALANCE.scaling.spawnIntervalFloor,
+      interval * Math.pow(BALANCE.scaling.spawnIntervalPerStage, stage)
+    );
+  }
 
   if (hordeActive) interval *= cfg.hordeMultiplier;
   if (player.repellentActive) interval *= BALANCE.items.repellentIntervalMultiplier;
@@ -92,7 +147,10 @@ function getSpawnInterval() {
 }
 
 function getMaxEnemies() {
-  let max = BALANCE.limits.maxEnemies;
+  let max = Math.min(
+    BALANCE.scaling.maxEnemiesCap,
+    BALANCE.limits.maxEnemies + getDifficultyStage() * BALANCE.scaling.maxEnemiesPerStage
+  );
   if (player.repellentActive) max = Math.floor(max * BALANCE.items.repellentMaxEnemiesMultiplier);
   return max;
 }

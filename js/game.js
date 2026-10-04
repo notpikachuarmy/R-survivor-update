@@ -1027,6 +1027,8 @@ function resetPlayerForNewRun() {
   player._appliedScrollBonuses = {};
 
   player.uniqueUpgrades = {};
+  player.upgradeStacks = {};
+  currentDifficultyStage = 0;
   
   player.weaponUpgradeCounts = {};
   player.runWeaponStats = {};
@@ -1482,12 +1484,36 @@ function getNearestEnemyInRangeFromPoint(x, y, range) {
   return nearest;
 }
 
+function getTurretTarget(turret) {
+  // Las torretas reparten sus disparos: penalizan el objetivo que ya está
+  // disparando otra torreta.
+  const assigned = new Map();
+  for (const other of watermelonTurrets) {
+    if (other === turret || !other.lastTarget || other.lastTarget.dead) continue;
+    assigned.set(other.lastTarget, (assigned.get(other.lastTarget) || 0) + 1);
+  }
+
+  let best = null;
+  let bestScore = Infinity;
+
+  for (const enemy of enemies) {
+    if (enemy.dead || enemy.isAlly) continue;
+    const d = Math.hypot(enemy.x - turret.x, enemy.y - turret.y);
+    if (d > turret.range) continue;
+
+    const score = d + (assigned.get(enemy) || 0) * 180;
+    if (score < bestScore) {
+      best = enemy;
+      bestScore = score;
+    }
+  }
+
+  turret.lastTarget = best;
+  return best;
+}
+
 function shootWatermelonSeedFromTurret(turret) {
-  const target = getNearestEnemyInRangeFromPoint(
-    turret.x,
-    turret.y,
-    turret.range
-  );
+  const target = getTurretTarget(turret);
 
   if (!target) return;
 
@@ -2092,6 +2118,7 @@ function isSlimeEntity(entity) {
 
 function getEnemyStatMultiplier(enemy, stat) {
   let multiplier = 1;
+
   if (hordeActive) {
     if (stat === "speed") multiplier *= 1.30;
     if (stat === "damage") multiplier *= 1.25;
@@ -3323,7 +3350,8 @@ function damagePlayer(amount) {
     return;
   }
 
-  let finalDamage = amount;
+  // Todo el daño recibido crece con la fase de la partida (ver js/balance.js).
+  let finalDamage = amount * getDifficultyDamageMultiplier();
 
   if (player.evioliteActive) {
     finalDamage *= 0.90;
@@ -3486,21 +3514,30 @@ function convertRandomEnemyToAlly() {
 }
 
 function getNearestEnemyForAlly(ally) {
+  // Los aliados se reparten: un enemigo que ya persiguen otros aliados
+  // "parece" más lejos, así que prefieren objetivos libres cercanos.
+  const assigned = new Map();
+  for (const other of enemies) {
+    if (other === ally || other.dead || !other.isAlly || !other.allyTarget || other.allyTarget.dead) continue;
+    assigned.set(other.allyTarget, (assigned.get(other.allyTarget) || 0) + 1);
+  }
+
   let nearest = null;
-  let nearestDist = Infinity;
+  let bestScore = Infinity;
 
   for (const enemy of enemies) {
     if (enemy.dead) continue;
     if (enemy.isAlly) continue;
 
-    const d = distance(ally, enemy);
+    const score = distance(ally, enemy) + (assigned.get(enemy) || 0) * 260;
 
-    if (d < nearestDist) {
+    if (score < bestScore) {
       nearest = enemy;
-      nearestDist = d;
+      bestScore = score;
     }
   }
 
+  ally.allyTarget = nearest;
   return nearest;
 }
 
@@ -4505,7 +4542,7 @@ function getBlackChestRewards(amount = 3) {
   for (const upgrade of getAvailableUpgrades()) {
     pool.push({
       id: upgrade.id,
-      name: upgrade.name,
+      name: `${upgrade.name} (${getUpgradeLevelLabel(upgrade)})`,
       description: upgrade.description,
       sprite: () => {
   if (upgrade.weaponId === "patataBoom") {
@@ -6645,6 +6682,7 @@ function update(dt) {
 }
 
   updateStormEvents(dt);
+  updateDifficultyStage();
 
   farEnemyCheckTimer -= dt;
   if (farEnemyCheckTimer <= 0) {

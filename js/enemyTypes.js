@@ -877,6 +877,15 @@ senseiTalent: {
 };
 
 function createEnemy(typeId, x, y) {
+  const enemy = createEnemyBase(typeId, x, y);
+  // La vida crece con la fase de la partida (ver js/balance.js).
+  if (enemy && typeof applyDifficultyScalingToEnemy === "function" && typeof gameStarted !== "undefined" && gameStarted) {
+    applyDifficultyScalingToEnemy(enemy);
+  }
+  return enemy;
+}
+
+function createEnemyBase(typeId, x, y) {
   const data = EnemyDatabase[typeId];
 
   if (!data) {

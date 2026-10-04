@@ -50,8 +50,12 @@ function showLevelUpOptions() {
     const card = document.createElement("button");
     card.className = "upgrade-card";
 
+    const levelLabel = typeof getUpgradeLevelLabel === "function" ? getUpgradeLevelLabel(upgrade) : "";
+    const weaponLabel = upgrade.itemName ? `<small class="upgrade-card-weapon">${upgrade.itemName}${levelLabel ? " · " + levelLabel : ""}</small>` : "";
+
     card.innerHTML = `
       <h3>${upgrade.name}</h3>
+      ${weaponLabel}
       <p>${upgrade.description}</p>
     `;
 
