@@ -44,8 +44,13 @@ const BALANCE = {
     magnetPickupRange: 230,
     // Las bolitas a menos de esta distancia se fusionan en una sola.
     mergeRadius: 56,
-    // Si hay más bolitas que esto en el mapa, las nuevas se suman a la más cercana.
+    // Si hay más bolitas que esto en el mapa, las nuevas se suman a una cercana.
     maxOrbs: 220,
+    // Bolitas que se quedan muy atrás (más lejos que esto del jugador) se "guardan"
+    // y su XP sale en la siguiente bolita que suelte un enemigo. Así no se pierde nada.
+    farOrbDistance: 1600,
+    // Al estar en el límite, solo se fusiona con bolitas a menos de esta distancia del enemigo.
+    capMergeDistance: 450,
     // Velocidad a la que vuelan hacia el jugador al recogerlas.
     attractSpeed: 520
   },
@@ -86,7 +91,9 @@ const SPECIAL_ENEMY_IDS = new Set([
   "sandyShocksBoss",
   "goldSlime",
   "goldSlimeGiant",
-  "delibird"
+  "delibird",
+  "dio",
+  "dioBoss"
 ]);
 
 function isSpecialEnemy(enemy) {

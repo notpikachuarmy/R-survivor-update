@@ -88,6 +88,14 @@ window.addEventListener("keydown", (e) => {
     }
   }
 
+  // Espacio = dash (Alas de Dédalo). Evita que el navegador haga scroll
+  // o vuelva a pulsar el botón "Jugar" que se quedó con el foco.
+  if ((key === " " || key === "shift") && gameStarted) {
+    if (key === " ") e.preventDefault();
+    // Se guarda la petición para que un toque rapidísimo no se pierda entre frames.
+    if (!e.repeat) player.dashRequested = true;
+  }
+
   if (key === "f7" && DEV_MODE) {
     e.preventDefault();
     toggleRunItemDebugPanel();
@@ -931,7 +939,9 @@ function startGame() {
   resetPlayerForNewRun();
   mainMenu.classList.add("hidden");
   ui.classList.remove("hidden");
+  playButton.blur();
   resetWorld();
+  placePlayerAtSafeSpawn();
   watermelonTurrets = [];
   chickens = [];
   roosters = [];
@@ -959,6 +969,29 @@ function startGame() {
   startMusic();
 
   spawnRift("rhyhorn");
+}
+
+// Antes el jugador siempre aparecía en (0, 0) y a veces eso caía dentro del río:
+// sin el Flotador Lapras no podías ni moverte. Ahora se busca tierra firme cerca.
+function placePlayerAtSafeSpawn() {
+  const margin = (typeof RIVER_BANK_WIDTH === "number" ? RIVER_BANK_WIDTH : 90) + 60;
+  let spot = typeof findDryLandNear === "function" ? findDryLandNear(0, 0, margin) : { x: 0, y: 0 };
+
+  player.x = spot.x;
+  player.y = spot.y;
+
+  // Si cae encima de una roca o un árbol, se busca un hueco libre alrededor.
+  for (let radius = 0; radius <= 600 && isBlockedByWorld(player); radius += 32) {
+    for (let i = 0; i < 16; i++) {
+      const angle = (i / 16) * Math.PI * 2;
+      player.x = spot.x + Math.cos(angle) * radius;
+      player.y = spot.y + Math.sin(angle) * radius;
+      if (!isBlockedByWorld(player) && !(typeof isNearRiverWater === "function" && isNearRiverWater(player.x, player.y, 40))) break;
+    }
+  }
+
+  camera.x = Math.round(player.x);
+  camera.y = Math.round(player.y);
 }
 
 function resetPlayerForNewRun() {
@@ -1038,6 +1071,9 @@ function resetPlayerForNewRun() {
   resetButterflies();
   resetXpOrbs();
   resetElectricState();
+  resetRunItemsPlusState();
+  resetNewWeapons();
+  resetJojoState();
   farEnemyCheckTimer = 1;
   applyWeaponDefinition("stone");
 }
@@ -1159,8 +1195,8 @@ function getPauseGroupForId(id) {
 function countUnlockedEncyclopediaEntries(type) {
   if (typeof EncyclopediaDatabase === "undefined") return 0;
   const db = EncyclopediaDatabase[type] || {};
-  const known = saveData?.encyclopedia?.[type] || {};
-  return Object.keys(db).filter(id => known[id]).length;
+  const known = saveData?.encyclopedia?.[type] || [];
+  return Object.keys(db).filter(id => Array.isArray(known) ? known.includes(id) : known[id]).length;
 }
 
 function countTotalEncyclopediaEntries(type) {
@@ -1190,7 +1226,12 @@ function getWeaponStatRows(id, weapon) {
     count: "Cantidad",
     clickRange: "Rango clic",
     moveSpeed: "Velocidad cursor",
-    respawnCooldown: "Respawn"
+    respawnCooldown: "Respawn",
+    kickPower: "Fuerza de chut",
+    knockback: "Empuje",
+    fuel: "Combustible",
+    hitCooldown: "Golpe cada",
+    cornerDamage: "Daño esquina"
   };
 
   const hidden = new Set(["tags", "slots", "timer", "shootTimer"]);
@@ -1323,7 +1364,12 @@ function renderPauseBuildPanel() {
     [player.repellentActive, "Repelente", "repellent", [["Efecto", "Aparecen menos enemigos"]]],
     [player.berserkSleeveActive, "Manga de Berserk", "berserkSleeve", [["Daño extra", `+${BALANCE.items.berserkDamageBonus}`]]],
     [player.magnetActive, "Imán", "magnet", [["Radio de XP", BALANCE.xp.magnetPickupRange]]],
-    [player.shellBellActive, "Cascabel Concha", "shellBell", [["Curación", `${BALANCE.items.shellBellHeal} PS cada ${BALANCE.items.shellBellKillsPerHeal} kills`]]]
+    [player.shellBellActive, "Cascabel Concha", "shellBell", [["Curación", `${BALANCE.items.shellBellHeal} PS cada ${BALANCE.items.shellBellKillsPerHeal} kills`]]],
+    [player.stoneMaskActive, "Máscara de piedra", "stoneMask", [["Robo de vida", `${Math.round(RUN_ITEMS_PLUS.stoneMask.lifeStealPercent * 100)}% del daño`]]],
+    [player.zeusBoltActive, "Rayo de Zeus", "zeusBolt", [["Velocidad", `+${Math.round((RUN_ITEMS_PLUS.zeusBolt.speedMultiplier - 1) * 100)}%`]]],
+    [player.daedalusWingsActive, "Alas de Dédalo", "daedalusWings", [["Dash", `ESPACIO cada ${RUN_ITEMS_PLUS.daedalusWings.cooldown} s`], ["Efecto", "Intangible durante el dash"]]],
+    [player.snomPlushActive, "Peluche de Snom", "snomPlush", [["Probabilidad", `${Math.round(RUN_ITEMS_PLUS.snomPlush.chance * 100)}%`], ["Te ignoran", `${RUN_ITEMS_PLUS.snomPlush.ignoreTime} s`]]],
+    [player.bugforceActive, "Bugforce", "bugforce", [["Efecto", "Enemigos de cualquier zona"]]]
   ].filter(item => item[0]);
 
   for (const [, name, id, rows] of runItems) {
@@ -1723,10 +1769,18 @@ function spawnRift(riftId) {
   const angle = Math.random() * Math.PI * 2;
   const distanceFromPlayer = 600;
 
+  // Nunca dentro del río (no se podría llegar sin el Flotador Lapras).
+  const spot = findDryLandNear(
+    player.x + Math.cos(angle) * distanceFromPlayer,
+    player.y + Math.sin(angle) * distanceFromPlayer,
+    data.collision + 40
+  );
+
   activeRifts.push({
     id: data.id,
-    x: player.x + Math.cos(angle) * distanceFromPlayer,
-    y: player.y + Math.sin(angle) * distanceFromPlayer,
+    x: spot.x,
+    y: spot.y,
+    glow: data.glow || null,
     width: data.width,
     height: data.height,
     collision: data.collision,
@@ -1887,7 +1941,7 @@ function spawnSenseiStatue() {
     sprite: Assets.world.senseiStatue
   };
 
-  if (isCollidingWithObstacle(statue)) {
+  if (isCollidingWithObstacle(statue) || isNearRiverWater(statue.x, statue.y, statue.collision + 30)) {
     return false;
   }
 
@@ -1922,7 +1976,7 @@ function spawnPrisonerCage() {
     sprite: Assets.world.cage
   };
 
-  if (isCollidingWithObstacle(cage)) {
+  if (isCollidingWithObstacle(cage) || isNearRiverWater(cage.x, cage.y, cage.collision + 30)) {
     return false;
   }
 
@@ -2095,6 +2149,19 @@ function updatePlayer(dt) {
     const len = Math.hypot(dx, dy);
     dx /= len;
     dy /= len;
+  }
+
+  // Dirección actual (la usan el dash y la apisonadora).
+  player.moveDirX = dx;
+  player.moveDirY = dy;
+
+  // Alas de Dédalo: durante el dash el movimiento normal no se aplica.
+  if (updatePlayerDash(dt)) {
+    if (player.invulnerableTimer > 0) player.invulnerableTimer -= dt;
+    return;
+  }
+
+  if (dx !== 0 || dy !== 0) {
 
     moveWithObstacleCollision(
       player,
@@ -2338,6 +2405,18 @@ function updateEnemies(dt) {
       continue;
       }
 
+    // Peluche de Snom: este enemigo te está ignorando unos segundos.
+    if (enemy.snomIgnoreTimer > 0) {
+      updateSnomIgnoringEnemy(enemy, dt);
+      continue;
+    }
+
+    // DIO (Grieta Jojo) tiene su propia IA en js/jojoRift.js.
+    if (enemy.jojo) {
+      updateDioEnemy(enemy, dt);
+      continue;
+    }
+
     if (enemy.id === "goldSlime" || enemy.id === "goldSlimeGiant") {
   updateGoldSlime(enemy, dt);
   continue;
@@ -2557,6 +2636,12 @@ if (roosterTarget && enemy.attackCooldown <= 0) {
       damagePlayer(contactDamage);
       player.invulnerableTimer = 0.6;
 
+      // Vampiro: se cura lo que te quita.
+      if (enemy.lifeSteal) {
+        enemy.life = Math.min(enemy.maxLife, enemy.life + contactDamage * enemy.lifeSteal);
+      }
+
+      trySnomPlushIgnore(enemy);
     }
   }
 }
@@ -3372,6 +3457,7 @@ function damageEnemy(enemy, amount, source = null, sourceTags = []) {
 
   enemy.life -= finalDamage;
   recordBuildDamage(source, finalDamage, false);
+  applyStoneMaskLifeSteal(finalDamage);
 
   if (
   player.firePlortActive &&
@@ -3760,6 +3846,36 @@ function onEnemyKilled(enemy, source = null) {
     if (player.scaryMedkitActive) spawnItemDrop("scaryMedkit", enemy.x - 40, enemy.y);
   }
 
+  if (enemy.id === "dioBoss") {
+    saveData.stats.totalDioBossKills = (saveData.stats.totalDioBossKills || 0) + 1;
+    completeRift("jojo");
+    saveData.unlocks.vampire = true;
+    saveData.unlocks.dio = true;
+    saveData.unlocks.stoneMask = true;
+    saveData.unlocks.steamroller = true;
+    unlockEncyclopedia("enemies", "dioBoss");
+    unlockEncyclopedia("enemies", "vampire");
+    unlockEncyclopedia("enemies", "dio");
+    unlockEncyclopedia("items", "stoneMask");
+    unlockEncyclopedia("weapons", "steamroller");
+    jojoTimeStop = null;
+    roadRollerDrops = [];
+    spawnBlackChest(enemy.x, enemy.y);
+    spawnChest(enemy.x + 50, enemy.y);
+    showEventMessage("DIO ha sido derrotado. ¡Nuevos desbloqueos!");
+    if (player.scaryMedkitActive) spawnItemDrop("scaryMedkit", enemy.x - 40, enemy.y);
+  }
+
+  if (enemy.id === "dio") {
+    saveData.stats.totalDioKills = (saveData.stats.totalDioKills || 0) + 1;
+    spawnBlackChest(enemy.x, enemy.y);
+    if (player.scaryMedkitActive && Math.random() < 0.5) spawnItemDrop("scaryMedkit", enemy.x + 35, enemy.y);
+  }
+
+  if (enemy.id === "vampire") {
+    saveData.stats.totalVampireKills = (saveData.stats.totalVampireKills || 0) + 1;
+  }
+
   if (enemy.id === "sandyShocks") {
     saveData.stats.totalSandyShocksKills = (saveData.stats.totalSandyShocksKills || 0) + 1;
     spawnBlackChest(enemy.x, enemy.y);
@@ -3938,6 +4054,7 @@ function unlockScroll(scrollId) {
 }
 
 function spawnChest(x, y) {
+  ({ x, y } = findDryLandNear(x, y, 30));
   chests.push({
     id: "basicChest",
     x,
@@ -3952,6 +4069,7 @@ function spawnChest(x, y) {
 }
 
 function spawnBag(x, y) {
+  ({ x, y } = findDryLandNear(x, y, 30));
   bags.push({
     id: "bag",
     x,
@@ -3966,6 +4084,8 @@ function spawnBag(x, y) {
 }
 
 function spawnBlackChest(x, y) {
+  // Si el enemigo murió en el agua, el cofre aparece en la orilla más cercana.
+  ({ x, y } = findDryLandNear(x, y, 30));
   blackChests.push({
     id: "blackChest",
     x,
@@ -4061,6 +4181,7 @@ function spawnItemDrop(itemId, x, y) {
   const itemData = ItemDatabase[itemId];
 
   if (!itemData) return;
+  ({ x, y } = findDryLandNear(x, y, 30));
 
   drops.push({
     id: itemId,
@@ -4468,6 +4589,91 @@ const BLACK_CHEST_WEAPONS = [
     unlockEncyclopedia("items", "shellBell");
   }
 },
+
+  // --- Actualización: balón, AVA, Grieta Jojo e items pasivos nuevos ---
+  {
+    id: "soccerBall",
+    unlockKey: "soccerBall",
+    name: "Balón de fútbol",
+    description: "Nueva arma: un balón que golpea enemigos. Chócate con él para chutarlo.",
+    sprite: () => Assets.items.soccerBall,
+    apply() { addSoccerBallWeapon(); }
+  },
+  {
+    id: "avaLogo",
+    unlockKey: "avaLogo",
+    name: "Logo AVA",
+    description: "Nueva arma: el logo rebota por los bordes de la pantalla dañando enemigos.",
+    sprite: () => Assets.items.avaLogo,
+    apply() { addAvaLogoWeapon(); }
+  },
+  {
+    id: "steamroller",
+    unlockKey: "steamroller",
+    name: "Apisonadora",
+    description: "Nueva arma: lanza apisonadoras que aplastan todo a su paso hasta quedarse sin combustible.",
+    sprite: () => Assets.items.steamroller,
+    apply() { addSteamrollerWeapon(); }
+  },
+  {
+    id: "stoneMask",
+    unlockKey: "stoneMask",
+    name: "Máscara de piedra",
+    description: `Item de run: robas vida. El ${Math.round(RUN_ITEMS_PLUS.stoneMask.lifeStealPercent * 100)}% del daño que haces te cura.`,
+    sprite: () => Assets.items.stoneMask,
+    apply() {
+      player.stoneMaskActive = true;
+      player.stoneMaskHealBuffer = 0;
+      unlockEncyclopedia("items", "stoneMask");
+    }
+  },
+  {
+    id: "zeusBolt",
+    unlockKey: "zeusBolt",
+    name: "Rayo de Zeus",
+    description: "Item de run: +15% de velocidad de movimiento.",
+    sprite: () => Assets.items.zeusBolt,
+    apply() {
+      player.zeusBoltActive = true;
+      player.speed *= RUN_ITEMS_PLUS.zeusBolt.speedMultiplier;
+      unlockEncyclopedia("items", "zeusBolt");
+    }
+  },
+  {
+    id: "daedalusWings",
+    unlockKey: "daedalusWings",
+    name: "Alas de Dédalo",
+    description: `Item de run: pulsa ESPACIO para hacer un dash (cada ${RUN_ITEMS_PLUS.daedalusWings.cooldown} s). Durante el dash eres intangible.`,
+    sprite: () => Assets.items.daedalusWings,
+    apply() {
+      player.daedalusWingsActive = true;
+      player.dashCooldown = 0;
+      unlockEncyclopedia("items", "daedalusWings");
+      showEventMessage("Alas de Dédalo: pulsa ESPACIO para hacer un dash");
+    }
+  },
+  {
+    id: "snomPlush",
+    unlockKey: "snomPlush",
+    name: "Peluche de Snom",
+    description: `Item de run: cuando un enemigo te ataca, ${Math.round(RUN_ITEMS_PLUS.snomPlush.chance * 100)}% de que te ignore durante ${RUN_ITEMS_PLUS.snomPlush.ignoreTime} s.`,
+    sprite: () => Assets.items.snomPlush,
+    apply() {
+      player.snomPlushActive = true;
+      unlockEncyclopedia("items", "snomPlush");
+    }
+  },
+  {
+    id: "bugforce",
+    unlockKey: "bugforce",
+    name: "Bugforce",
+    description: "Item de run: los enemigos de cualquier zona pueden aparecer en cualquier zona.",
+    sprite: () => Assets.items.bugforce,
+    apply() {
+      player.bugforceActive = true;
+      unlockEncyclopedia("items", "bugforce");
+    }
+  },
 ];
 
 
@@ -4487,7 +4693,12 @@ const RUN_ITEM_IDS = new Set([
   "repellent",
   "berserkSleeve",
   "magnet",
-  "shellBell"
+  "shellBell",
+  "stoneMask",
+  "zeusBolt",
+  "daedalusWings",
+  "snomPlush",
+  "bugforce"
 ]);
 
 function isBlackChestRewardUnlocked(reward) {
@@ -4511,7 +4722,12 @@ function isBlackChestRewardOwned(reward) {
     repellent: "repellentActive",
     berserkSleeve: "berserkSleeveActive",
     magnet: "magnetActive",
-    shellBell: "shellBellActive"
+    shellBell: "shellBellActive",
+    stoneMask: "stoneMaskActive",
+    zeusBolt: "zeusBoltActive",
+    daedalusWings: "daedalusWingsActive",
+    snomPlush: "snomPlushActive",
+    bugforce: "bugforceActive"
   };
 
   const flag = runItemFlags[reward.id];
@@ -4545,6 +4761,9 @@ function getBlackChestRewards(amount = 3) {
       name: `${upgrade.name} (${getUpgradeLevelLabel(upgrade)})`,
       description: upgrade.description,
       sprite: () => {
+  const registryWeapon = getWeaponDefinition(upgrade.weaponId);
+  if (registryWeapon?.sprite && upgrade.weaponId !== "stone") return registryWeapon.sprite();
+
   if (upgrade.weaponId === "patataBoom") {
     return Assets.items.patataBoom;
   }
@@ -4602,6 +4821,18 @@ function getBlackChestRewards(amount = 3) {
   while (result.length < amount && pool.length > 0) {
     const index = Math.floor(Math.random() * pool.length);
     result.push(pool.splice(index, 1)[0]);
+  }
+
+  // Antes, con todo conseguido y mejorado al máximo, el cofre negro salía vacío
+  // y el juego se quedaba en pausa para siempre. Ahora da unas patatas.
+  if (result.length === 0) {
+    result.push({
+      id: "blackChestFallbackHeal",
+      name: NO_MORE_UPGRADES_HEAL_OPTION.name,
+      description: NO_MORE_UPGRADES_HEAL_OPTION.description,
+      sprite: () => Assets.items.alioliPotatoes,
+      apply: () => NO_MORE_UPGRADES_HEAL_OPTION.apply()
+    });
   }
 
   return result;
@@ -6063,7 +6294,8 @@ if (
 
 function drawRifts() {
   for (const rift of activeRifts) {
-    if (rift.tint) drawStormRiftGlow(rift);
+    if (rift.glow === "jojo") drawJojoRiftGlow(rift);
+    else if (rift.tint) drawStormRiftGlow(rift);
     drawWorldObject(rift);
 
     if (rift.summoning) {
@@ -6152,8 +6384,10 @@ function rememberDrawPosition(entity) {
 function render() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  camera.x = player.x;
-  camera.y = player.y;
+  // Cámara en píxeles enteros: con posiciones decimales las baldosas se dibujaban
+  // en medio píxel y aparecían rayas/grietas entre ellas al caminar.
+  camera.x = Math.round(player.x);
+  camera.y = Math.round(player.y);
 
   drawBiomeBackground();
 
@@ -6164,7 +6398,8 @@ function render() {
 
   updateWorldAroundPlayer();
 
-  drawGrid();
+  // La rejilla de 128 px se ha quitado: junto con las costuras creaba el efecto
+  // de "cuadrados con grietas" que mareaba. drawGrid() sigue existiendo por si se quiere volver a usar.
   drawWorld();
   drawRifts();
 
@@ -6320,8 +6555,14 @@ for (const explosion of explosions) {
   }
 }
 
+  drawRoadRollerDrops();
+  drawSteamrollers();
+  drawSoccerBalls();
+
   for (const p of enemyProjectiles) {
-  if (p.id === "tornado") {
+  if (p.id === "dioKnife") {
+    drawDioKnife(p);
+  } else if (p.id === "tornado") {
     drawSprite(Assets.projectiles.tornado, p.x, p.y, p.size);
   } else if (p.id === "knife") {
     drawSprite(Assets.projectiles.knife, p.x, p.y, p.size);
@@ -6384,6 +6625,8 @@ drawRockSpikes();
   if (hordeActive) drawAura(enemy, "#ff4444");
   if (enemy.slimeRainBoostTimer > 0) drawAura(enemy, "#44ff66");
   drawBurnParticles(enemy);
+  if (enemy.jojo) drawDioBarrage(enemy);
+  drawSnomIgnoreIcon(enemy);
 
     if (enemy.isAlly) {
       drawAllyHearts(enemy);
@@ -6402,9 +6645,13 @@ drawRockSpikes();
     ? 0.5 + Math.sin(performance.now() / 60) * 0.3
     : 1;
 
+  drawDashTrail(getCurrentPlayerSprite());
   drawSprite(getCurrentPlayerSprite(), player.x, player.y, player.size, player.facing, playerAlpha, { sway: player.visualMoving, amount: 1.15, speed: 95 });
   drawBurnParticles(player);
+  drawTimeStopOverlay();
+  drawAvaLogos();
   drawPlayerLifeBar();
+  drawDashCooldown();
   drawXPBar();
   drawMinimap();
 
@@ -6578,7 +6825,7 @@ function exportDeathSummaryImage() {
   ex.font = "22px sans-serif";
   const itemIds = new Set();
   for (const [id] of Object.entries(player.weapons || {})) if (getPauseGroupForId(id) === "items") itemIds.add(id);
-  for (const id of ["scaryMedkit","eviolite","runningShoes","drill","leaderBadge","soap","slimeJam","greenPlort","firePlort","pokeball","chicken","repellent","berserkSleeve","magnet","shellBell"]) {
+  for (const id of ["scaryMedkit","eviolite","runningShoes","drill","leaderBadge","soap","slimeJam","greenPlort","firePlort","pokeball","chicken","repellent","berserkSleeve","magnet","shellBell","stoneMask","zeusBolt","daedalusWings","snomPlush","bugforce"]) {
     if (player[`${id}Active`] || player.weapons?.[id]) itemIds.add(id);
   }
   for (const id of itemIds) {
@@ -6619,6 +6866,13 @@ function update(dt) {
   if (!gameStarted || gameOver || gamePaused) return;
 
   worldFrameDt = dt;
+
+  // ZA WARUDO: con el tiempo parado solo se mueve DIO.
+  if (isTimeStopped()) {
+    updateTimeStop(dt);
+    updateUI();
+    return;
+  }
 
   gameTime += dt;
 
@@ -6682,6 +6936,7 @@ function update(dt) {
 }
 
   updateStormEvents(dt);
+  updateJojoEvents(dt);
   updateDifficultyStage();
 
   farEnemyCheckTimer -= dt;

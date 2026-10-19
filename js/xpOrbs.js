@@ -7,6 +7,8 @@
 
 let xpOrbs = [];
 let xpOrbMergeTimer = 0;
+// XP de bolitas que se quedaron muy lejos del jugador. Se añade a la siguiente bolita.
+let xpOrbBank = 0;
 
 // De menos a más valor. El color se vuelve más intenso al subir de tramo.
 const XP_ORB_TIERS = [
@@ -30,11 +32,18 @@ function getXpOrbTier(value) {
 function resetXpOrbs() {
   xpOrbs = [];
   xpOrbMergeTimer = 0;
+  xpOrbBank = 0;
 }
 
 function spawnXpOrb(x, y, value) {
   value = Math.round(value || 0);
   if (value <= 0) return;
+
+  // La XP "guardada" de bolitas lejanas reaparece aquí, donde está la acción.
+  if (xpOrbBank > 0) {
+    value += xpOrbBank;
+    xpOrbBank = 0;
+  }
 
   const mergeRadiusSq = BALANCE.xp.mergeRadius * BALANCE.xp.mergeRadius;
   let target = null;
@@ -52,17 +61,43 @@ function spawnXpOrb(x, y, value) {
     }
   }
 
-  // Demasiadas bolitas: la nueva se suma a la más cercana esté donde esté.
+  // Demasiadas bolitas en el mapa.
+  // ANTES: la nueva XP se sumaba a la bolita más cercana "esté donde esté", que en
+  // partidas largas solía estar fuera de pantalla (bolitas olvidadas por el camino).
+  // Resultado: los enemigos parecían dejar de soltar XP. AHORA:
+  //  1) se fusiona solo con una bolita cercana al enemigo, y si no hay,
+  //  2) la bolita más alejada del JUGADOR se absorbe en la nueva (no se pierde XP).
   if (!target && xpOrbs.length >= BALANCE.xp.maxOrbs) {
-    targetDistSq = Infinity;
+    const capSq = BALANCE.xp.capMergeDistance * BALANCE.xp.capMergeDistance;
+    targetDistSq = capSq;
     for (const orb of xpOrbs) {
-      if (orb.dead) continue;
+      if (orb.dead || orb.collecting) continue;
       const dx = orb.x - x;
       const dy = orb.y - y;
       const distSq = dx * dx + dy * dy;
       if (distSq < targetDistSq) {
         target = orb;
         targetDistSq = distSq;
+      }
+    }
+
+    if (!target) {
+      let farthest = null;
+      let farthestSq = -1;
+      for (const orb of xpOrbs) {
+        if (orb.dead || orb.collecting) continue;
+        const dx = orb.x - player.x;
+        const dy = orb.y - player.y;
+        const distSq = dx * dx + dy * dy;
+        if (distSq > farthestSq) {
+          farthest = orb;
+          farthestSq = distSq;
+        }
+      }
+      if (farthest) {
+        value += farthest.value;
+        farthest.dead = true;
+        xpOrbs = xpOrbs.filter(orb => !orb.dead);
       }
     }
   }
@@ -123,6 +158,20 @@ function mergeNearbyXpOrbs() {
   }
 }
 
+// Las bolitas que se han quedado muy atrás se guardan en xpOrbBank.
+function bankFarXpOrbs() {
+  const maxSq = BALANCE.xp.farOrbDistance * BALANCE.xp.farOrbDistance;
+  for (const orb of xpOrbs) {
+    if (orb.dead || orb.collecting) continue;
+    const dx = orb.x - player.x;
+    const dy = orb.y - player.y;
+    if (dx * dx + dy * dy > maxSq) {
+      xpOrbBank += orb.value;
+      orb.dead = true;
+    }
+  }
+}
+
 function updateXpOrbs(dt) {
   const range = player.magnetActive ? BALANCE.xp.magnetPickupRange : BALANCE.xp.pickupRange;
   const rangeSq = range * range;
@@ -165,6 +214,7 @@ function updateXpOrbs(dt) {
   if (xpOrbMergeTimer <= 0) {
     xpOrbMergeTimer = 0.5;
     mergeNearbyXpOrbs();
+    bankFarXpOrbs();
     anyDead = true;
   }
 

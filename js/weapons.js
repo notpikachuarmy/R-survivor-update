@@ -26,6 +26,18 @@ function updateWeapons(dt) {
   if (player.weapons.butterflyStaff) {
     updateButterflyStaffWeapon(dt);
   }
+
+  if (player.weapons.soccerBall) {
+    updateSoccerBallWeapon(dt);
+  }
+
+  if (player.weapons.avaLogo) {
+    updateAvaLogoWeapon(dt);
+  }
+
+  if (player.weapons.steamroller) {
+    updateSteamrollerWeapon(dt);
+  }
 }
 
 function updateChikoritaLeafWeapon(dt) {

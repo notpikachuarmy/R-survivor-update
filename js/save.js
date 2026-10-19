@@ -44,6 +44,9 @@ const DEFAULT_SAVE = {
     totalMagnetonKills: 0,
     totalSandyShocksBossKills: 0,
     totalSandyShocksKills: 0,
+    totalVampireKills: 0,
+    totalDioBossKills: 0,
+    totalDioKills: 0,
   },
 
   senseis: {
@@ -107,6 +110,17 @@ const DEFAULT_SAVE = {
     magnemite: false,
     magneton: false,
     sandyShocks: false,
+    // Actualización Jojo / armas e items nuevos
+    vampire: false,
+    dio: false,
+    stoneMask: false,
+    steamroller: false,
+    soccerBall: false,
+    avaLogo: false,
+    zeusBolt: false,
+    daedalusWings: false,
+    snomPlush: false,
+    bugforce: false,
   }
 };
 

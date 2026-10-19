@@ -576,6 +576,101 @@ kill500Slimes: {
     }
   },
 
+  // --- Actualización: Grieta Jojo, armas e items nuevos ---
+  defeatDioBoss: {
+    id: "defeatDioBoss",
+    name: "¡Pero fui yo, DIO!",
+    description: "Derrota a DIO Brando en la Grieta Jojo.",
+    reward: "Desbloquea al Vampiro, a DIO cada 5 minutos, la Máscara de piedra y la Apisonadora.",
+    check() { return (saveData.stats.totalDioBossKills || 0) >= 1; },
+    unlock() {
+      saveData.unlocks.vampire = true;
+      saveData.unlocks.dio = true;
+      saveData.unlocks.stoneMask = true;
+      saveData.unlocks.steamroller = true;
+      unlockEncyclopedia("enemies", "dioBoss");
+      unlockEncyclopedia("enemies", "vampire");
+      unlockEncyclopedia("enemies", "dio");
+      unlockEncyclopedia("items", "stoneMask");
+      unlockEncyclopedia("weapons", "steamroller");
+    }
+  },
+
+  survive10Minutes: {
+    id: "survive10Minutes",
+    name: "Partido completo",
+    description: "Sobrevive 10 minutos en una partida.",
+    reward: "Desbloquea el Balón de fútbol.",
+    check() {
+      return (saveData.bestTime || 0) >= 600 ||
+        (typeof gameTime === "number" && gameTime >= 600);
+    },
+    unlock() {
+      saveData.unlocks.soccerBall = true;
+      unlockEncyclopedia("weapons", "soccerBall");
+    }
+  },
+
+  reachLevel20: {
+    id: "reachLevel20",
+    name: "Salvapantallas",
+    description: "Alcanza el nivel 20 en una partida.",
+    reward: "Desbloquea el Logo AVA.",
+    check() { return player.level >= 20; },
+    unlock() {
+      saveData.unlocks.avaLogo = true;
+      unlockEncyclopedia("weapons", "avaLogo");
+    }
+  },
+
+  kill5SandyShocks: {
+    id: "kill5SandyShocks",
+    name: "Ira del Olimpo",
+    description: "Derrota 5 veces a Sandy Shocks (el que aparece cada 5 minutos).",
+    reward: "Desbloquea el Rayo de Zeus en los cofres negros.",
+    check() { return (saveData.stats.totalSandyShocksKills || 0) >= 5; },
+    unlock() {
+      saveData.unlocks.zeusBolt = true;
+      unlockEncyclopedia("items", "zeusBolt");
+    }
+  },
+
+  kill250Pidoves: {
+    id: "kill250Pidoves",
+    name: "Ícaro, no tan alto",
+    description: "Derrota a 250 Pidoves.",
+    reward: "Desbloquea las Alas de Dédalo en los cofres negros.",
+    check() { return (saveData.stats.totalPidoveKills || 0) >= 250; },
+    unlock() {
+      saveData.unlocks.daedalusWings = true;
+      unlockEncyclopedia("items", "daedalusWings");
+    }
+  },
+
+  kill250CloudSlimes: {
+    id: "kill250CloudSlimes",
+    name: "Abrazo helado",
+    description: "Derrota a 250 Slimes Nube.",
+    reward: "Desbloquea el Peluche de Snom en los cofres negros.",
+    check() { return (saveData.stats.totalCloudSlimeKills || 0) >= 250; },
+    unlock() {
+      saveData.unlocks.snomPlush = true;
+      unlockEncyclopedia("items", "snomPlush");
+    }
+  },
+
+  kill10000Enemies: {
+    id: "kill10000Enemies",
+    name: "Error del sistema",
+    description: "Derrota a 10000 enemigos en total.",
+    reward: "Desbloquea Bugforce en los cofres negros.",
+    check() { return (saveData.stats.totalEnemiesKilled || 0) >= 10000; },
+    unlock() {
+      saveData.unlocks.bugforce = true;
+      unlockEncyclopedia("items", "bugforce");
+    }
+  },
+
 };
 
 function checkAchievements() {

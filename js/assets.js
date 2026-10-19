@@ -32,6 +32,9 @@ const Assets = {
     magneton: new Image(),
     sandyShocks: new Image(),
     sandyShocksBoss: new Image(),
+    vampire: new Image(),
+    dio: new Image(),
+    dioBoss: new Image(),
   },
 
   projectiles: {
@@ -92,6 +95,14 @@ const Assets = {
     berserkSleeve: new Image(),
     repellent: new Image(),
     shellBell: new Image(),
+    soccerBall: new Image(),
+    avaLogo: new Image(),
+    steamroller: new Image(),
+    stoneMask: new Image(),
+    zeusBolt: new Image(),
+    daedalusWings: new Image(),
+    snomPlush: new Image(),
+    bugforce: new Image(),
   },
 
   obstacles: {
@@ -327,6 +338,19 @@ Assets.items.magnet.src = "assets/items/iman.png";
 Assets.items.berserkSleeve.src = "assets/items/mangaberserk.png";
 Assets.items.repellent.src = "assets/items/repelente.png";
 Assets.items.shellBell.src = "assets/items/cascabelConcha.png";
+
+// --- Actualización: Grieta Jojo, armas e items nuevos ---
+Assets.enemies.vampire.src = "assets/enemies/vampiro.png";
+Assets.enemies.dio.src = "assets/enemies/dio.png";
+Assets.enemies.dioBoss.src = "assets/enemies/dioBoss.png";
+Assets.items.soccerBall.src = "assets/items/balonFutbol.png";
+Assets.items.avaLogo.src = "assets/items/logoAVA.png";
+Assets.items.steamroller.src = "assets/items/apisonadora.png";
+Assets.items.stoneMask.src = "assets/items/mascaraPiedra.png";
+Assets.items.zeusBolt.src = "assets/items/rayoZeus.png";
+Assets.items.daedalusWings.src = "assets/items/alasDedalo.png";
+Assets.items.snomPlush.src = "assets/items/peluchesSnom.png";
+Assets.items.bugforce.src = "assets/items/bugforce.png";
 
 function loadAssets(callback) {
   const images = [];

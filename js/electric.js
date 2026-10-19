@@ -110,6 +110,7 @@ function updateElectricEnemy(enemy, dt) {
   ) {
     damagePlayer(contactDamage);
     player.invulnerableTimer = 0.6;
+    if (typeof trySnomPlushIgnore === "function") trySnomPlushIgnore(enemy);
   }
 }
 

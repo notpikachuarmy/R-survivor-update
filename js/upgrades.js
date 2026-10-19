@@ -649,6 +649,27 @@ const UPGRADE_POOL = [
     }
   }
 },
+
+  // --- Balón de fútbol ---
+  { id: "soccerBall_damage", weaponId: "soccerBall", itemName: "Balón de fútbol", name: "Chut potente", description: "+4 daño del balón.", apply() { player.weapons.soccerBall.damage += 4; } },
+  { id: "soccerBall_kick", weaponId: "soccerBall", itemName: "Balón de fútbol", name: "Pierna de oro", description: "Chutas el balón más fuerte (llega más lejos y más rápido).", apply() { player.weapons.soccerBall.kickPower += 90; } },
+  { id: "soccerBall_extra", weaponId: "soccerBall", itemName: "Balón de fútbol", name: "Otro balón", description: "+1 balón en el campo.", apply() { player.weapons.soccerBall.count += 1; } },
+  { id: "soccerBall_range", weaponId: "soccerBall", itemName: "Balón de fútbol", name: "Campo grande", description: "El balón puede alejarse más antes de reaparecer.", apply() { player.weapons.soccerBall.range += 120; } },
+  { id: "soccerBall_size", weaponId: "soccerBall", itemName: "Balón de fútbol", name: "Balón medicinal", description: "Balón más grande y que empuja más.", apply() { player.weapons.soccerBall.size += 8; player.weapons.soccerBall.knockback += 20; } },
+
+  // --- Logo AVA ---
+  { id: "avaLogo_damage", weaponId: "avaLogo", itemName: "Logo AVA", name: "Alta definición", description: "+3 daño del logo.", apply() { player.weapons.avaLogo.damage += 3; } },
+  { id: "avaLogo_speed", weaponId: "avaLogo", itemName: "Logo AVA", name: "Salvapantallas acelerado", description: "El logo se mueve más rápido.", apply() { player.weapons.avaLogo.speed += 45; } },
+  { id: "avaLogo_count", weaponId: "avaLogo", itemName: "Logo AVA", name: "Otro logo", description: "+1 logo rebotando por la pantalla.", apply() { player.weapons.avaLogo.count += 1; } },
+  { id: "avaLogo_size", weaponId: "avaLogo", itemName: "Logo AVA", name: "Pantalla panorámica", description: "Logo más grande.", apply() { player.weapons.avaLogo.size += 18; } },
+  { id: "avaLogo_corner", weaponId: "avaLogo", itemName: "Logo AVA", name: "¡Justo en la esquina!", description: "+30 daño de la explosión al tocar una esquina.", apply() { player.weapons.avaLogo.cornerDamage += 30; } },
+
+  // --- Apisonadora ---
+  { id: "steamroller_damage", weaponId: "steamroller", itemName: "Apisonadora", name: "Más toneladas", description: "+8 daño de aplastamiento.", apply() { player.weapons.steamroller.damage += 8; } },
+  { id: "steamroller_fuel", weaponId: "steamroller", itemName: "Apisonadora", name: "Depósito lleno", description: "Más combustible: avanzan más distancia.", apply() { player.weapons.steamroller.fuel += 140; } },
+  { id: "steamroller_count", weaponId: "steamroller", itemName: "Apisonadora", name: "Flota de obras", description: "+1 apisonadora por lanzamiento.", apply() { player.weapons.steamroller.count += 1; } },
+  { id: "steamroller_cooldown", weaponId: "steamroller", itemName: "Apisonadora", name: "Turno doble", description: "Lanzas apisonadoras más a menudo.", canApply: (p, weapon) => weapon.cooldown > 2 + UPGRADE_EPSILON, apply() { player.weapons.steamroller.cooldown = Math.max(2, player.weapons.steamroller.cooldown - 0.4); } },
+  { id: "steamroller_size", weaponId: "steamroller", itemName: "Apisonadora", name: "Modelo industrial", description: "Apisonadoras más grandes y rápidas.", apply() { player.weapons.steamroller.size += 14; player.weapons.steamroller.speed += 25; } },
 ];
 
 
@@ -689,7 +710,13 @@ const UPGRADE_MAX_STACKS = {
   cursor_damage: 8, cursor_click_speed: 3, cursor_count: 4, cursor_range: 4,
   // Gallo de Pelea
   rooster_damage: 8, rooster_speed: 4, rooster_life: 5, rooster_count: 4,
-  rooster_giant: 1, rooster_slime: 1
+  rooster_giant: 1, rooster_slime: 1,
+  // Balón de fútbol
+  soccerBall_damage: 8, soccerBall_kick: 5, soccerBall_extra: 2, soccerBall_range: 4, soccerBall_size: 4,
+  // Logo AVA
+  avaLogo_damage: 8, avaLogo_speed: 5, avaLogo_count: 3, avaLogo_size: 4, avaLogo_corner: 4,
+  // Apisonadora
+  steamroller_damage: 8, steamroller_fuel: 5, steamroller_count: 3, steamroller_cooldown: 5, steamroller_size: 3
 };
 
 // Para mejoras nuevas que se olviden de añadir arriba.

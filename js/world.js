@@ -339,6 +339,9 @@ const MAX_OBSTACLE_COLLISION = Math.max(
 );
 
 function isCollidingWithObstacle(entity) {
+  // Alas de Dédalo: durante el dash el jugador es intangible y atraviesa obstáculos.
+  if (entity === player && player.dashing) return false;
+
   const entityRadius = entity.collision || entity.size * 0.35 || 0;
   const reach = entityRadius + MAX_OBSTACLE_COLLISION;
   const ignoreRocks = entity === player && player.drillActive;

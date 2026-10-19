@@ -740,6 +740,164 @@ senseiTalent: {
   }
 };
 
+// --- Actualización: Grieta Jojo, armas e items nuevos ---
+Object.assign(EncyclopediaDatabase.weapons, {
+  soccerBall: {
+    id: "soccerBall",
+    name: "Balón de fútbol",
+    category: "Arma",
+    sprite: () => Assets.items.soccerBall,
+    description: "Un balón con físicas que golpea y empuja a los enemigos.",
+    details: [
+      "Tipo: Físico",
+      "Chócate con el balón para chutarlo en esa dirección.",
+      "Rebota en enemigos y obstáculos. Bien chutado hace más daño.",
+      "Si se aleja más que su rango, reaparece a tus pies.",
+      "Puedes mejorar su daño, fuerza de chut, número de balones, rango y tamaño.",
+      "Se desbloquea sobreviviendo 10 minutos."
+    ]
+  },
+  avaLogo: {
+    id: "avaLogo",
+    name: "Logo AVA",
+    category: "Arma",
+    sprite: () => Assets.items.avaLogo,
+    description: "El clásico salvapantallas del DVD, pero pone AVA. Rebota por los bordes de la pantalla.",
+    details: [
+      "Tipo: Pantalla",
+      "Daña a los enemigos que toca y cambia de color en cada rebote.",
+      "Si da justo en una esquina, explota.",
+      "Puedes mejorar su daño, velocidad, cantidad, tamaño y la explosión de esquina.",
+      "Se desbloquea alcanzando el nivel 20 en una partida."
+    ]
+  },
+  steamroller: {
+    id: "steamroller",
+    name: "Apisonadora",
+    category: "Arma",
+    sprite: () => Assets.items.steamroller,
+    description: "Lanza apisonadoras que avanzan en línea recta aplastando a todos los enemigos a su paso.",
+    details: [
+      "Tipo: Vehículo",
+      "Atraviesa a todos los enemigos y obstáculos.",
+      "El combustible decide cuánto avanza. Cuando se acaba, se para.",
+      "Puedes mejorar su daño, combustible, cantidad, cadencia y tamaño.",
+      "Se desbloquea derrotando a DIO en la Grieta Jojo."
+    ]
+  }
+});
+
+Object.assign(EncyclopediaDatabase.items, {
+  stoneMask: {
+    id: "stoneMask",
+    name: "Máscara de piedra",
+    category: "Item de run",
+    sprite: () => Assets.items.stoneMask,
+    description: "Robo de vida: parte del daño que haces te cura.",
+    details: [
+      "Te curas un 3% de todo el daño que causas.",
+      "Se desbloquea derrotando a DIO en la Grieta Jojo."
+    ]
+  },
+  zeusBolt: {
+    id: "zeusBolt",
+    name: "Rayo de Zeus",
+    category: "Item de run",
+    sprite: () => Assets.items.zeusBolt,
+    description: "Aumenta la velocidad de movimiento un 15%.",
+    details: [
+      "Se acumula con las Deportivas.",
+      "Se desbloquea derrotando 5 veces a Sandy Shocks."
+    ]
+  },
+  daedalusWings: {
+    id: "daedalusWings",
+    name: "Alas de Dédalo",
+    category: "Item de run",
+    sprite: () => Assets.items.daedalusWings,
+    description: "Pulsa ESPACIO (o Shift) para hacer un dash. Se recarga cada 4,5 segundos.",
+    details: [
+      "Durante el dash eres intangible: no recibes daño y atraviesas obstáculos.",
+      "El agua del río sigue bloqueando.",
+      "Una barrita bajo el personaje indica cuándo está listo.",
+      "Se desbloquea derrotando a 250 Pidoves."
+    ]
+  },
+  snomPlush: {
+    id: "snomPlush",
+    name: "Peluche de Snom",
+    category: "Item de run",
+    sprite: () => Assets.items.snomPlush,
+    description: "Cuando un enemigo te ataca, tiene un 30% de probabilidad de ignorarte durante 4 segundos.",
+    details: [
+      "No funciona con jefes ni senseis.",
+      "Los enemigos calmados llevan un copo de nieve encima.",
+      "Se desbloquea derrotando a 250 Slimes Nube."
+    ]
+  },
+  bugforce: {
+    id: "bugforce",
+    name: "Bugforce",
+    category: "Item de run",
+    sprite: () => Assets.items.bugforce,
+    description: "Los enemigos de cualquier zona pueden aparecer en cualquier zona.",
+    details: [
+      "Solo aparecen enemigos que ya tengas desbloqueados.",
+      "Se desbloquea derrotando a 10000 enemigos en total."
+    ]
+  }
+});
+
+Object.assign(EncyclopediaDatabase.enemies, {
+  vampire: {
+    id: "vampire",
+    name: "Vampiro",
+    category: "Enemigo",
+    sprite: () => Assets.enemies.vampire,
+    description: "Sirviente de DIO. Se abalanza sobre ti y se cura con cada mordisco.",
+    details: [
+      "45 PS",
+      "15 XP",
+      "Velocidad: 105",
+      "Ataque: Salto",
+      "Se cura lo mismo que te quita.",
+      "Aparece en planicie y bosque tras completar la Grieta Jojo."
+    ]
+  },
+  dioBoss: {
+    id: "dioBoss",
+    name: "DIO Brando",
+    category: "Jefe",
+    sprite: () => Assets.enemies.dioBoss,
+    description: "El guardián de la Grieta Jojo. ¡Oh! ¿Te acercas a mí?",
+    details: [
+      "700 PS",
+      "220 XP",
+      "Velocidad: 78",
+      "Ataque: Cuchillos en abanico",
+      "Ataque: MUDA MUDA (ráfaga de puñetazos a corta distancia)",
+      "Ataque: ZA WARUDO (para el tiempo y te rodea de cuchillos; escapa por el hueco)",
+      "Ataque: ROAD ROLLER DA (con poca vida)",
+      "Invoca vampiros.",
+      "La grieta aparece a los 7 minutos tras completar la Grieta de tormenta."
+    ]
+  },
+  dio: {
+    id: "dio",
+    name: "DIO",
+    category: "Jefe",
+    sprite: () => Assets.enemies.dio,
+    description: "Versión debilitada de DIO. Aparece cada 5 minutos una vez derrotado el jefe.",
+    details: [
+      "320 PS",
+      "Ataque: Cuchillos",
+      "Ataque: MUDA MUDA",
+      "Ataque: ZA WARUDO (más corto)",
+      "Siempre deja un Cofre Negro."
+    ]
+  }
+});
+
 // --- Contenido de la tormenta, mariposas e items pasivos nuevos ---
 Object.assign(EncyclopediaDatabase.weapons, {
   butterflyStaff: {

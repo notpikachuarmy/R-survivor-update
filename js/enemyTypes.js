@@ -874,6 +874,110 @@ senseiTalent: {
     cannotCapture: true
   },
 
+  // ---------------------------------------------------------------------------
+  // Grieta Jojo (lógica en js/jojoRift.js).
+  // ---------------------------------------------------------------------------
+  vampire: {
+    id: "vampire",
+    name: "Vampiro",
+    type: "normal",
+    tags: ["vampire", "undead"],
+    sprite: () => Assets.enemies.vampire,
+    size: 62,
+    collision: 22,
+    life: 45,
+    speed: 105,
+    xpValue: 15,
+    scoreValue: 90,
+    attacks: ["charge"],
+    chargeRange: 250,
+    chargeTime: 0.5,
+    jumpSpeed: 660,
+    jumpDuration: 0.3,
+    attackCooldown: 1.6,
+    // Se cura lo mismo que te quita al morderte.
+    lifeSteal: 1,
+    isBoss: false,
+    chestChance: 0
+  },
+
+  dioBoss: {
+    id: "dioBoss",
+    name: "DIO Brando",
+    type: "boss",
+    tags: ["boss", "vampire", "undead"],
+    sprite: () => Assets.enemies.dioBoss,
+    size: 124,
+    collision: 40,
+    life: 700,
+    speed: 78,
+    xpValue: 220,
+    scoreValue: 2000,
+    attacks: [],
+    jojo: {
+      contactDamage: 20,
+      knifeCooldown: 3.2,
+      knifeCount: 5,
+      knifeSpread: 0.5,
+      knifeSpeed: 470,
+      knifeDamage: 10,
+      knifeRange: 700,
+      barrageCooldown: 6,
+      barrageDuration: 1.3,
+      barrageRange: 120,
+      barrageDamage: 4,
+      timeStopFirst: 8,
+      timeStopCooldown: 17,
+      timeStopDuration: 2.6,
+      timeStopKnives: 12,
+      timeStopKnifeDamage: 12,
+      roadRollerCooldown: 14,
+      roadRollerLifeRatio: 0.6,
+      roadRollerDamage: 30,
+      summonCooldown: 13,
+      summonCount: 2
+    },
+    isBoss: true,
+    chestChance: 1,
+    cannotCapture: true
+  },
+
+  dio: {
+    id: "dio",
+    name: "DIO",
+    type: "special",
+    tags: ["boss", "vampire", "undead"],
+    sprite: () => Assets.enemies.dio,
+    size: 100,
+    collision: 34,
+    life: 320,
+    speed: 82,
+    xpValue: 70,
+    scoreValue: 600,
+    attacks: [],
+    jojo: {
+      contactDamage: 14,
+      knifeCooldown: 3.6,
+      knifeCount: 3,
+      knifeSpread: 0.35,
+      knifeSpeed: 440,
+      knifeDamage: 8,
+      knifeRange: 620,
+      barrageCooldown: 7,
+      barrageDuration: 1,
+      barrageRange: 105,
+      barrageDamage: 3,
+      timeStopFirst: 12,
+      timeStopCooldown: 24,
+      timeStopDuration: 1.7,
+      timeStopKnives: 8,
+      timeStopKnifeDamage: 9
+    },
+    isBoss: true,
+    chestChance: 1,
+    cannotCapture: true
+  },
+
 };
 
 function createEnemy(typeId, x, y) {
@@ -1006,7 +1110,11 @@ function createEnemyBase(typeId, x, y) {
     attackCooldown: 1 + Math.random(),
 
     // Configuración de enemigos eléctricos (Magnemite, Magneton, Sandy Shocks).
-    electric: data.electric ? structuredClone(data.electric) : null
+    electric: data.electric ? structuredClone(data.electric) : null,
+
+    // Grieta Jojo: IA de DIO (js/jojoRift.js) y robo de vida del vampiro.
+    jojo: data.jojo ? structuredClone(data.jojo) : null,
+    lifeSteal: data.lifeSteal || 0
   };
 }
 
@@ -1065,6 +1173,8 @@ if (typeId === "cloudSlime") {
   if (typeId === "magnemite") return saveData.unlocks.magnemite === true;
   if (typeId === "magneton") return saveData.unlocks.magneton === true;
   if (typeId === "sandyShocks") return saveData.unlocks.sandyShocks === true;
+  if (typeId === "vampire") return saveData.unlocks.vampire === true;
+  if (typeId === "dio") return saveData.unlocks.dio === true;
 
 
   if (typeId === "rhyhorn") {

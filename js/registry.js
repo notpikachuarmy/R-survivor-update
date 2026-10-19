@@ -199,6 +199,69 @@ const WeaponRegistry = {
     initialStats: {
       tags: ["ally", "rooster", "summon"]
     }
+  },
+
+  soccerBall: {
+    id: "soccerBall",
+    name: "Balón de fútbol",
+    description: "Un balón que golpea a los enemigos. Chócate con él para chutarlo; si se aleja demasiado, reaparece a tus pies.",
+    category: "Arma",
+    sprite: () => Assets.items.soccerBall,
+    unlockKey: "soccerBall",
+    canStart: true,
+    encyclopedia: true,
+    applyFn: "setupSoccerBallWeapon",
+    initialStats: {
+      tags: ["ball", "physical"],
+      damage: 8,
+      count: 1,
+      kickPower: 640,
+      range: 650,
+      size: 30,
+      knockback: 70
+    }
+  },
+
+  avaLogo: {
+    id: "avaLogo",
+    name: "Logo AVA",
+    description: "El clásico logo de DVD (pero AVA) rebota por los bordes de la pantalla y daña a todo lo que toca.",
+    category: "Arma",
+    sprite: () => Assets.items.avaLogo,
+    unlockKey: "avaLogo",
+    canStart: true,
+    encyclopedia: true,
+    applyFn: "setupAvaLogoWeapon",
+    initialStats: {
+      tags: ["digital", "screen"],
+      damage: 6,
+      count: 1,
+      speed: 260,
+      size: 110,
+      hitCooldown: 0.5,
+      cornerDamage: 40
+    }
+  },
+
+  steamroller: {
+    id: "steamroller",
+    name: "Apisonadora",
+    description: "Lanza apisonadoras que avanzan en línea recta aplastando enemigos hasta quedarse sin combustible.",
+    category: "Arma",
+    sprite: () => Assets.items.steamroller,
+    unlockKey: "steamroller",
+    canStart: true,
+    encyclopedia: true,
+    applyFn: "setupSteamrollerWeapon",
+    initialStats: {
+      tags: ["vehicle", "crush", "heavy"],
+      damage: 18,
+      cooldown: 4,
+      count: 1,
+      fuel: 520,
+      speed: 240,
+      size: 80
+    }
   }
 };
 
@@ -281,7 +344,8 @@ const BiomeRegistry = {
       { id: "flabebe", weight: 5, minTime: 180, unlockKey: "flabebe" },
       { id: "delibird", weight: 2, minTime: 180, unlockKey: "delibird" },
       { id: "magnemite", weight: 5, minTime: 150, unlockKey: "magnemite" },
-      { id: "magneton", weight: 2, minTime: 330, unlockKey: "magneton" }
+      { id: "magneton", weight: 2, minTime: 330, unlockKey: "magneton" },
+      { id: "vampire", weight: 5, minTime: 240, unlockKey: "vampire" }
     ],
     decorations: ["grass1", "grass2", "flower1"],
     obstacles: ["rock", "bush", "tree"],
@@ -306,7 +370,8 @@ const BiomeRegistry = {
       { id: "watermelonElectrode", weight: 4, minTime: 90, unlockKey: "watermelonElectrode" },
       { id: "pidove", weight: 7, minTime: 180, unlockKey: "pidove" },
       { id: "magnemite", weight: 4, minTime: 150, unlockKey: "magnemite" },
-      { id: "magneton", weight: 2, minTime: 330, unlockKey: "magneton" }
+      { id: "magneton", weight: 2, minTime: 330, unlockKey: "magneton" },
+      { id: "vampire", weight: 7, minTime: 240, unlockKey: "vampire" }
     ],
     decorations: ["grass1", "grass2", "flower1", "flowerBlue", "flowerRed", "flowerYellow", "bushSmall"],
     obstacles: ["treeForest1", "treeForest2", "treeForest3", "bush", "rock"],
@@ -427,6 +492,31 @@ function isRiverWaterAt(x, y) {
 
 function isRiverBiomeAt(x, y) {
   return getRiverDistance(x, y) <= RIVER_HALF_WIDTH + RIVER_BANK_WIDTH;
+}
+
+// ¿Está el punto en el agua del río (o a menos de "margin" píxeles de ella)?
+function isNearRiverWater(x, y, margin = 0) {
+  return getRiverDistance(x, y) <= RIVER_HALF_WIDTH + margin;
+}
+
+// Busca el punto de tierra firme más cercano (en espiral) a (x, y).
+// Sirve para que el jugador, las grietas o los cofres nunca queden dentro del agua,
+// donde sin el Flotador Lapras no se puede entrar.
+function findDryLandNear(x, y, margin = 40, maxRadius = 3000) {
+  if (!isNearRiverWater(x, y, margin)) return { x, y };
+
+  const offset = Math.random() * Math.PI * 2;
+  for (let radius = 48; radius <= maxRadius; radius += 48) {
+    const steps = Math.max(8, Math.floor(radius / 20));
+    for (let i = 0; i < steps; i++) {
+      const angle = offset + (i / steps) * Math.PI * 2;
+      const px = x + Math.cos(angle) * radius;
+      const py = y + Math.sin(angle) * radius;
+      if (!isNearRiverWater(px, py, margin)) return { x: px, y: py };
+    }
+  }
+
+  return { x, y };
 }
 
 function getRiverFlowAxisAt(x, y) {
@@ -592,7 +682,24 @@ function pickGlobalRareEnemyId(time, save = saveData) {
   return entry?.id || null;
 }
 
+// Bugforce: mezcla las pools de TODOS los biomas (respetando desbloqueos y tiempos).
+function getChaosEnemyPool(time, save = saveData) {
+  const merged = new Map();
+  for (const biome of Object.values(BiomeRegistry)) {
+    for (const entry of getBiomeEnemyPool(biome, time, save)) {
+      const previous = merged.get(entry.id);
+      if (!previous || (entry.weight || 1) > (previous.weight || 1)) merged.set(entry.id, entry);
+    }
+  }
+  return [...merged.values()];
+}
+
 function pickBiomeEnemyId(x, y, time, save = saveData) {
+  if (typeof player !== "undefined" && player?.bugforceActive) {
+    const chaosEntry = pickWeightedEntry(getChaosEnemyPool(time, save));
+    if (chaosEntry) return chaosEntry.id;
+  }
+
   const biome = getBiomeAt(x, y);
   const entry = pickWeightedEntry(getBiomeEnemyPool(biome, time, save));
   return entry?.id || "slime";
